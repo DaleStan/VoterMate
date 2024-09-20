@@ -8,71 +8,70 @@ public partial class MainPage : ContentPage
     private const double MilesPerDegree = 69;
     private Household? _nearestHousehold;
 
-    private async Task SetHousehold(Household? value)
+    private void SetHousehold(Location location, Household? value)
     {
         if (_nearestHousehold != value)
-        {
-            if (Navigation.NavigationStack.Count > 1)
-                await Navigation.PopAsync();
-
-            namesPanel.Children.Clear();
-
-            namesPanel.Children.Add(new Label
+            Dispatcher.Dispatch(async () =>
             {
-                Text = (value != null) ? "You are at " + value.Address : "No mobilizer houses nearby",
-                Margin = new(3),
-                HorizontalTextAlignment = TextAlignment.Center
-            });
+                if (Navigation.NavigationStack.Count > 1)
+                    await Navigation.PopAsync();
 
-            Button button;
+                namesPanel.Children.Clear();
 
-            foreach (var mobilizer in value?.Mobilizers ?? [])
-            {
-                string age = mobilizer.BirthDate.HasValue ? $"({(int)((DateTime.Now - mobilizer.BirthDate.Value).TotalDays / 365.24)})" : "(unknown age)";
-                button = new Button { Text = $"{mobilizer.Name} {age}", Margin = new Thickness(3) };
-                button.Clicked += (s, e) => (s as Button)!.Navigation.PushAsync(new MobilizerPage(location, mobilizer));
+                namesPanel.Children.Add(new Label
+                {
+                    Text = (value != null) ? "You are at " + value.Address : "No mobilizer houses nearby",
+                    Margin = new(3),
+                    HorizontalTextAlignment = TextAlignment.Center
+                });
+
+                Button button;
+
+                foreach (var mobilizer in value?.Mobilizers ?? [])
+                {
+                    string age = mobilizer.BirthDate.HasValue ? $"({(int)((DateTime.Now - mobilizer.BirthDate.Value).TotalDays / 365.24)})" : "(unknown age)";
+                    button = new Button { Text = $"{mobilizer.Name} {age}", Margin = new Thickness(3) };
+                    button.Clicked += (s, e) => (s as Button)!.Navigation.PushAsync(new MobilizerPage(location, mobilizer));
+                    namesPanel.Add(button);
+                }
+
+                button = new Button { Text = "Mobilizer not listed", Margin = new Thickness(3) };
+                button.Clicked += (s, e) => (s as Button)!.Navigation.PushAsync(new MobilizerPage(location, null));
                 namesPanel.Add(button);
-            }
 
-            button = new Button { Text = "Mobilizer not listed", Margin = new Thickness(3) };
-            button.Clicked += (s, e) => (s as Button)!.Navigation.PushAsync(new MobilizerPage(location, null));
-            namesPanel.Add(button);
-
-            _nearestHousehold = value;
-        }
+                _nearestHousehold = value;
+            });
     }
 
     public MainPage()
     {
         InitializeComponent();
-        Geolocation.LocationChanged += Geolocation_LocationChanged;
-        Geolocation.ListeningFailed += Geolocation_ListeningFailed;
     }
 
-    private async void Geolocation_LocationChanged(object? sender, GeolocationLocationChangedEventArgs e)
+    private void Geolocation_LocationChanged(object? sender, GeolocationLocationChangedEventArgs e)
     {
         double squareFilterRange = 0.5; // 1/2 mile
         double squareFilterLongitude = squareFilterRange / MilesPerDegree;
         double squareFilterLatitude = squareFilterRange / MilesPerDegree / Math.Cos(e.Location.Longitude);
 
-        await SetHousehold(App.Database.GetHouseholds()
+        SetHousehold(e.Location, App.Database.GetHouseholds()
             .Where(SquareFilter) // Premature optimization? Don't consider houses more than squareFilterRange away in either lat or lon.
             .OrderBy(DistanceTo).FirstOrDefault());
 
 
         bool SquareFilter(Household h)
         {
-            return Math.Abs(h.Latitude - e.Location.Latitude) < squareFilterLatitude && Math.Abs(h.Longitude - e.Location.Longitude) < squareFilterLongitude;
+            return Math.Abs(h.Location.Latitude - e.Location.Latitude) < squareFilterLatitude
+                && Math.Abs(h.Location.Longitude - e.Location.Longitude) < squareFilterLongitude;
         }
 
-        double DistanceTo(Household h)
-        {
-            return Location.CalculateDistance(h.Latitude, h.Longitude, e.Location, DistanceUnits.Miles);
-        }
+        double DistanceTo(Household h) => h.Location.CalculateDistance(e.Location, DistanceUnits.Miles);
     }
 
     private async void MainPage_Loaded(object sender, EventArgs e)
     {
+        Geolocation.LocationChanged += Geolocation_LocationChanged;
+        Geolocation.ListeningFailed += Geolocation_ListeningFailed;
         if (!await Geolocation.StartListeningForegroundAsync(new GeolocationListeningRequest(GeolocationAccuracy.Best)))
         {
             Application.Current!.Quit();

@@ -1,12 +1,17 @@
-﻿namespace VoterMate
-{
-    public partial class App : Application
-    {
-        public App()
-        {
-            InitializeComponent();
+﻿using VoterMate.Database;
 
-            MainPage = new AppShell();
-        }
+namespace VoterMate;
+
+public partial class App : Application
+{
+    // TODO: Create a `class RealDatabase : IDatabase` type that reads and writes the appropriate data.
+    // Change StubDatabase to RealDatabase here.
+    public static IDatabase Database { get; } = new ExcelDatabase();
+
+    public App()
+    {
+        InitializeComponent();
+
+        MainPage = new AppShell();
     }
 }

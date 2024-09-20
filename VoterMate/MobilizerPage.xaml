@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:dg="clr-namespace:Maui.DataGrid;assembly=Maui.DataGrid"
+             xmlns:local="clr-namespace:VoterMate.Database;assembly=VoterMate"
+             x:Class="VoterMate.MobilizerPage"
+             NavigatingFrom="ContentPage_NavigatingFrom"
+             Title="{Null}">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="2*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition x:Name="nameRow" Height="Auto" />
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition/>
+        </Grid.RowDefinitions>
+        <Label Text="Your Name:" HorizontalOptions="End" FontSize="Medium" VerticalTextAlignment="Center"/>
+        <Entry Completed="Name_Completed" MinimumWidthRequest="20" Grid.Column="3" FontSize="Large"/>
+        <Label Text="Your Phone Number:" HorizontalOptions="End" Grid.Row="1" FontSize="Medium" VerticalTextAlignment="Center"/>
+        <Entry Completed="Phone_Completed" MinimumWidthRequest="20" Grid.Row="1" Grid.Column="2" FontSize="Medium" Margin="10" Keyboard="Telephone"/>
+        <Label Text="I am able to contact:" FontSize="Medium" HorizontalOptions="Center" Grid.Row="2" Grid.ColumnSpan="2" Margin="10"/>
+        <dg:DataGrid x:Name="dgData" RowHeight="50" HeaderHeight="40" x:DataType="local:Voter" Margin="5"
+                     HeaderBackground="LightGray" Refreshing="dgData_Refreshing" Grid.Row="3" Grid.ColumnSpan="2">
+            <dg:DataGrid.Columns>
+                <dg:DataGridColumn SortingEnabled="False" Title="Voter Name">
+                    <dg:DataGridColumn.CellTemplate>
+                        <DataTemplate>
+                            <Label Text="{Binding Name}" Margin="5" FontSize="Medium" VerticalTextAlignment="Center"/>
+                        </DataTemplate>
+                    </dg:DataGridColumn.CellTemplate>
+                </dg:DataGridColumn>
+                <dg:DataGridColumn SortingEnabled="False" Title="I will contact">
+                    <dg:DataGridColumn.CellTemplate>
+                        <DataTemplate>
+                            <CheckBox IsChecked="{Binding WillContact}"/>
+                        </DataTemplate>
+                    </dg:DataGridColumn.CellTemplate>
+                </dg:DataGridColumn>
+            </dg:DataGrid.Columns>
+        </dg:DataGrid>
+    </Grid>
+</ContentPage>
