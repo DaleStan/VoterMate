@@ -18,11 +18,11 @@ public partial class MobilizerPage : ContentPage
         dgData.ItemsSource = App.Database.GetVoters(location, _mobilizer);
     }
 
-    private void Name_Completed(object sender, EventArgs e)
+    private void Name_TextChanged(object sender, TextChangedEventArgs e)
     {
         _mobilizer.Name = ((Entry)sender).Text;
     }
-    private void Phone_Completed(object sender, EventArgs e)
+    private void Phone_TextChanged(object sender, TextChangedEventArgs e)
     {
         _mobilizer.Phone = ((Entry)sender).Text;
     }

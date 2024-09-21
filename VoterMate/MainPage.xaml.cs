@@ -8,39 +8,38 @@ public partial class MainPage : ContentPage
     private const double MilesPerDegree = 69;
     private Household? _nearestHousehold;
 
-    private void SetHousehold(Location location, Household? value)
+    private async void SetHousehold(Location location, Household? value)
     {
-        if (_nearestHousehold != value)
-            Dispatcher.Dispatch(async () =>
+        if (_nearestHousehold != value || namesPanel.Children.Count == 0)
+        {
+            if (Navigation.NavigationStack.Count > 1)
+                await Navigation.PopAsync();
+
+            namesPanel.Children.Clear();
+
+            namesPanel.Children.Add(new Label
             {
-                if (Navigation.NavigationStack.Count > 1)
-                    await Navigation.PopAsync();
-
-                namesPanel.Children.Clear();
-
-                namesPanel.Children.Add(new Label
-                {
-                    Text = (value != null) ? "You are at " + value.Address : "No mobilizer houses nearby",
-                    Margin = new(3),
-                    HorizontalTextAlignment = TextAlignment.Center
-                });
-
-                Button button;
-
-                foreach (var mobilizer in value?.Mobilizers ?? [])
-                {
-                    string age = mobilizer.BirthDate.HasValue ? $"({(int)((DateTime.Now - mobilizer.BirthDate.Value).TotalDays / 365.24)})" : "(unknown age)";
-                    button = new Button { Text = $"{mobilizer.Name} {age}", Margin = new Thickness(3) };
-                    button.Clicked += (s, e) => (s as Button)!.Navigation.PushAsync(new MobilizerPage(location, mobilizer));
-                    namesPanel.Add(button);
-                }
-
-                button = new Button { Text = "Mobilizer not listed", Margin = new Thickness(3) };
-                button.Clicked += (s, e) => (s as Button)!.Navigation.PushAsync(new MobilizerPage(location, null));
-                namesPanel.Add(button);
-
-                _nearestHousehold = value;
+                Text = (value != null) ? "You are at " + value.Address : "No mobilizer houses nearby",
+                Margin = new(3),
+                HorizontalTextAlignment = TextAlignment.Center
             });
+
+            Button button;
+
+            foreach (var mobilizer in value?.Mobilizers ?? [])
+            {
+                string age = mobilizer.BirthDate.HasValue ? $"({(int)((DateTime.Now - mobilizer.BirthDate.Value).TotalDays / 365.24)})" : "(unknown age)";
+                button = new Button { Text = $"{mobilizer.Name} {age}", Margin = new Thickness(3) };
+                button.Clicked += (s, e) => (s as Button)!.Navigation.PushAsync(new MobilizerPage(location, mobilizer));
+                namesPanel.Add(button);
+            }
+
+            button = new Button { Text = "Mobilizer not listed", Margin = new Thickness(3) };
+            button.Clicked += (s, e) => (s as Button)!.Navigation.PushAsync(new MobilizerPage(location, null));
+            namesPanel.Add(button);
+
+            _nearestHousehold = value;
+        }
     }
 
     public MainPage()
@@ -54,10 +53,11 @@ public partial class MainPage : ContentPage
         double squareFilterLongitude = squareFilterRange / MilesPerDegree;
         double squareFilterLatitude = squareFilterRange / MilesPerDegree / Math.Cos(e.Location.Longitude);
 
-        SetHousehold(e.Location, App.Database.GetHouseholds()
+        var household = App.Database.GetHouseholds()
             .Where(SquareFilter) // Premature optimization? Don't consider houses more than squareFilterRange away in either lat or lon.
-            .OrderBy(DistanceTo).FirstOrDefault());
+            .OrderBy(DistanceTo).FirstOrDefault();
 
+        Dispatcher.Dispatch(() => SetHousehold(e.Location, household));
 
         bool SquareFilter(Household h)
         {

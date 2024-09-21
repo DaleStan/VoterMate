@@ -18,9 +18,9 @@
             <RowDefinition/>
         </Grid.RowDefinitions>
         <Label Text="Your Name:" HorizontalOptions="End" FontSize="Medium" VerticalTextAlignment="Center"/>
-        <Entry Completed="Name_Completed" MinimumWidthRequest="20" Grid.Column="3" FontSize="Large"/>
+        <Entry TextChanged="Name_TextChanged" MinimumWidthRequest="20" Grid.Column="3" FontSize="Medium" Margin="10"/>
         <Label Text="Your Phone Number:" HorizontalOptions="End" Grid.Row="1" FontSize="Medium" VerticalTextAlignment="Center"/>
-        <Entry Completed="Phone_Completed" MinimumWidthRequest="20" Grid.Row="1" Grid.Column="2" FontSize="Medium" Margin="10" Keyboard="Telephone"/>
+        <Entry TextChanged="Phone_TextChanged" MinimumWidthRequest="20" Grid.Row="1" Grid.Column="2" FontSize="Medium" Margin="10" Keyboard="Telephone"/>
         <Label Text="I am able to contact:" FontSize="Medium" HorizontalOptions="Center" Grid.Row="2" Grid.ColumnSpan="2" Margin="10"/>
         <dg:DataGrid x:Name="dgData" RowHeight="50" HeaderHeight="40" x:DataType="local:Voter" Margin="5"
                      HeaderBackground="LightGray" Refreshing="dgData_Refreshing" Grid.Row="3" Grid.ColumnSpan="2">
