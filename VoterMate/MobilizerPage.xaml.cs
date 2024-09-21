@@ -1,4 +1,3 @@
-using Maui.DataGrid;
 using VoterMate.Database;
 
 namespace VoterMate;
@@ -14,7 +13,7 @@ public partial class MobilizerPage : ContentPage
         if (mobilizer != null)
             nameRow.Height = new GridLength(0);
 
-        _mobilizer = mobilizer ?? new Mobilizer(string.Empty, null, null);
+        _mobilizer = mobilizer ?? new Mobilizer(null, string.Empty, null);
 
         dgData.ItemsSource = App.Database.GetVoters(location, _mobilizer);
     }

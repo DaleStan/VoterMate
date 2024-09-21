@@ -57,15 +57,18 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <EmbeddedResource Include="Resources\schema.xlsx" />
+	  <EmbeddedResource Include="Database\*.tsv" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="akgul.Maui.DataGrid" Version="4.0.5" />
-		<PackageReference Include="EPPlus" Version="7.3.2" />
 		<PackageReference Include="Microsoft.Maui.Controls" Version="8.0.90" />
 		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="8.0.90" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\VoterMate.Database\VoterMate.Database.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -79,5 +82,9 @@
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	</ItemGroup>
+
+	<Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+	  <Exec Command="cd $(MSBuildProjectDirectory)\..\VoterMate.BuildDatabase\bin\$(Configuration)\net8.0\&#xD;&#xA;dotnet VoterMate.BuildDatabase.dll" />
+	</Target>
 
 </Project>
