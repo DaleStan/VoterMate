@@ -1,4 +1,5 @@
-﻿using VoterMate.Database;
+﻿using Microsoft.Maui.Devices.Sensors;
+using VoterMate.Database;
 
 namespace VoterMate;
 
@@ -7,6 +8,7 @@ public partial class MainPage : ContentPage
     // Approximate distance in miles between degrees of longitude at equator, or between degrees of latitude. Actual value ranges apparently ranges from 68.7 to 69.4.
     private const double MilesPerDegree = 69;
     private Household? _nearestHousehold;
+    private Location? _location;
 
     private async void SetHousehold(Location location, Household? value)
     {
@@ -34,11 +36,8 @@ public partial class MainPage : ContentPage
                 namesPanel.Add(button);
             }
 
-            button = new Button { Text = "Mobilizer not listed", Margin = new Thickness(3) };
-            button.Clicked += (s, e) => (s as Button)!.Navigation.PushAsync(new MobilizerPage(location, null));
-            namesPanel.Add(button);
-
             _nearestHousehold = value;
+            _location = location;
         }
     }
 
@@ -82,5 +81,23 @@ public partial class MainPage : ContentPage
     {
         // Failed also stops listening. Start listening again.
         Geolocation.StartListeningForegroundAsync(new GeolocationListeningRequest(GeolocationAccuracy.Best));
+    }
+
+    private void NotListed_Clicked(object sender, EventArgs e)
+    {
+        if (_location != null)
+            Navigation.PushAsync(new MobilizerPage(_location, null));
+    }
+
+    private async void Lookup_Clicked(object sender, EventArgs e)
+    {
+        var info = App.Database.GetMobilizer("OH" + txtVoterID.Text);
+        if (info == null)
+        {
+            await DisplayAlert("Not Found", $"The voter with ID OH{txtVoterID.Text} could not be found.", "OK");
+            return;
+        }
+        var (mobilizer, location) = info.Value;
+        await Navigation.PushAsync(new MobilizerPage(location, mobilizer));
     }
 }
