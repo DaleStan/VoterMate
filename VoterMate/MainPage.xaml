@@ -18,5 +18,6 @@
             <Entry x:Name="txtVoterID" MinimumWidthRequest="125" Grid.Column="1" Margin="0,3,3,3" Completed="Lookup_Clicked" Keyboard="Numeric"/>
             <Button Text="Look up this mobilizer" Clicked="Lookup_Clicked" Margin="3" Grid.Column="2"/>
         </Grid>
+        <Button Text="Export data" Margin="3" Opacity="0" Clicked="Copy_Clicked"/>
     </StackLayout>
 </ContentPage>

@@ -83,5 +83,17 @@ public partial class MobilizerPage : ContentPage
 
     public void Save()
     {
+        using StreamWriter sw = new(Path.Combine(FileSystem.Current.AppDataDirectory, "contactCommitments.csv"), true) { NewLine = "\n" };
+        foreach (var voter in _voters.Where(v => v.WillContact))
+        {
+            voter.WillContact = false;
+            string name = '"' + _mobilizer.Name.Replace("\"", "\"\"") + '"';
+            sw.WriteLine((_mobilizer.ID ?? name) + ',' + voter.ID);
+        }
+
+        if (!string.IsNullOrEmpty(_mobilizer.Phone))
+        {
+            File.AppendAllLines(Path.Combine(FileSystem.Current.AppDataDirectory, "phoneNumbers.csv"), [(_mobilizer.ID ?? _mobilizer.Name) + ',' + _mobilizer.Phone]);
+        }
     }
 }

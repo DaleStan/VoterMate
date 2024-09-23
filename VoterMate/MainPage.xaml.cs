@@ -10,6 +10,13 @@ public partial class MainPage : ContentPage
     private Household? _nearestHousehold;
     private Location? _location;
 
+    public MainPage()
+    {
+        InitializeComponent();
+        File.OpenWrite(Path.Combine(FileSystem.Current.AppDataDirectory, "contactCommitments.csv")).Close();
+        File.OpenWrite(Path.Combine(FileSystem.Current.AppDataDirectory, "phoneNumbers.csv")).Close();
+    }
+
     private async void SetHousehold(Location location, Household? value)
     {
         if (_nearestHousehold != value || namesPanel.Children.Count == 0)
@@ -41,9 +48,26 @@ public partial class MainPage : ContentPage
         }
     }
 
-    public MainPage()
+    private async void Copy_Clicked(object? sender, EventArgs e)
     {
-        InitializeComponent();
+        var button = (Button)sender!;
+        if (button.Opacity == 0)
+        {
+            button.Opacity = 1;
+            await Task.Delay(5000);
+            button.Opacity = 0;
+        }
+        else if (button.Opacity == 1)
+        {
+            try
+            {
+                List<ShareFile> files = [new(Path.Combine(FileSystem.Current.AppDataDirectory, "contactCommitments.csv")),
+                    new(Path.Combine(FileSystem.Current.AppDataDirectory, "phoneNumbers.csv"))];
+
+                await Share.Default.RequestAsync(new ShareMultipleFilesRequest { Files = files });
+            }
+            catch { }
+        }
     }
 
     private void Geolocation_LocationChanged(object? sender, GeolocationLocationChangedEventArgs e)
