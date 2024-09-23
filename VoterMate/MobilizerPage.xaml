@@ -6,40 +6,32 @@
              x:Class="VoterMate.MobilizerPage"
              NavigatingFrom="ContentPage_NavigatingFrom"
              Title="{Null}">
-    <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="2*"/>
-        </Grid.ColumnDefinitions>
-        <Grid.RowDefinitions>
-            <RowDefinition x:Name="nameRow" Height="Auto" />
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition/>
-        </Grid.RowDefinitions>
-        <Label Text="Your Name:" HorizontalOptions="End" FontSize="Medium" VerticalTextAlignment="Center"/>
-        <Entry TextChanged="Name_TextChanged" MinimumWidthRequest="20" Grid.Column="3" FontSize="Medium" Margin="10"/>
-        <Label Text="Your Phone Number:" HorizontalOptions="End" Grid.Row="1" FontSize="Medium" VerticalTextAlignment="Center"/>
-        <Entry TextChanged="Phone_TextChanged" MinimumWidthRequest="20" Grid.Row="1" Grid.Column="2" FontSize="Medium" Margin="10" Keyboard="Telephone"/>
-        <Label Text="I am able to contact:" FontSize="Medium" HorizontalOptions="Center" Grid.Row="2" Grid.ColumnSpan="2" Margin="10"/>
-        <dg:DataGrid x:Name="dgData" RowHeight="50" HeaderHeight="40" x:DataType="local:Voter" Margin="5"
-                     HeaderBackground="LightGray" Refreshing="dgData_Refreshing" Grid.Row="3" Grid.ColumnSpan="2">
-            <dg:DataGrid.Columns>
-                <dg:DataGridColumn SortingEnabled="False" Title="Voter Name">
-                    <dg:DataGridColumn.CellTemplate>
-                        <DataTemplate>
-                            <Label Text="{Binding Name}" Margin="5" FontSize="Medium" VerticalTextAlignment="Center"/>
-                        </DataTemplate>
-                    </dg:DataGridColumn.CellTemplate>
-                </dg:DataGridColumn>
-                <dg:DataGridColumn SortingEnabled="False" Title="I will contact">
-                    <dg:DataGridColumn.CellTemplate>
-                        <DataTemplate>
-                            <CheckBox IsChecked="{Binding WillContact}"/>
-                        </DataTemplate>
-                    </dg:DataGridColumn.CellTemplate>
-                </dg:DataGridColumn>
-            </dg:DataGrid.Columns>
-        </dg:DataGrid>
-    </Grid>
+    <ScrollView>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="2*"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition x:Name="nameRow" Height="Auto" />
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <Label Text="Your Name:" HorizontalOptions="End" FontSize="Medium" VerticalTextAlignment="Center"/>
+            <Entry TextChanged="Name_TextChanged" MinimumWidthRequest="20" Grid.Column="3" FontSize="Medium" Margin="10"/>
+            <Label Text="Your Phone Number:" HorizontalOptions="End" Grid.Row="1" FontSize="Medium" VerticalTextAlignment="Center"/>
+            <Entry TextChanged="Phone_TextChanged" MinimumWidthRequest="20" Grid.Row="1" Grid.Column="2" FontSize="Medium" Margin="10" Keyboard="Telephone"/>
+            <Grid x:Name="dgVoters" Grid.Row="2" Grid.ColumnSpan="2" Margin="10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Border BackgroundColor="LightGray" Stroke="Black" Grid.ColumnSpan="2"/>
+                <Label Text="I am able to contact:" FontSize="Medium" HorizontalOptions="Center" Grid.ColumnSpan="2" Margin="10"/>
+            </Grid>
+        </Grid>
+    </ScrollView>
 </ContentPage>

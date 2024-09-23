@@ -34,9 +34,9 @@ internal class TsvDatabase : IDatabase
 
     public IEnumerable<Household> GetHouseholds() => _households.Values;
 
-    public IEnumerable<Voter> GetVoters(Location location, Mobilizer mobilizer)
+    public List<Voter> GetVoters(Location location, Mobilizer mobilizer)
     {
-        return _priorityVoters.Select(v => _voters[v]).OrderByDescending(RelationshipScore).Take(100).ToList();
+        return _priorityVoters.Select(v => _voters[v]).OrderByDescending(RelationshipScore).ToList();
 
         int RelationshipScore(Voter voter)
         {
