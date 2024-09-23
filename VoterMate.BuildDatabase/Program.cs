@@ -41,7 +41,7 @@ internal static partial class Program
 
         if (stream == null)
         {
-            Console.Error.WriteLine("ERROR: Please download the latest voter database (schema.xlsx) and place it in the VoterMate.Database project folder before building.");
+            Console.Error.WriteLine("ERROR: Please download the latest voter database (schema.xlsx) and place it in the VoterMate.BuildDatabase project folder before building.");
             Environment.Exit(-1);
         }
         using var workbook = new ExcelPackage(stream).Workbook;
