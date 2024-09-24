@@ -8,7 +8,7 @@ internal class TsvDatabase : IDatabase
     private readonly Dictionary<string, Household> _households = [];
     // voterID -> Voter
     private readonly Dictionary<string, Voter> _voters = [];
-    private readonly HashSet<string> _priorityVoters = [];
+    private readonly HashSet<Voter> _priorityVoters = [];
 
     public TsvDatabase()
     {
@@ -29,28 +29,32 @@ internal class TsvDatabase : IDatabase
 
         using (StreamReader sr = new(typeof(TsvDatabase).Assembly.GetManifestResourceStream("VoterMate.Database.priorityVoters.tsv")!))
             while (sr.ReadLine() is string line)
-                _priorityVoters.Add(line);
+                _priorityVoters.Add(_voters[line]);
     }
 
     public IEnumerable<Household> GetHouseholds() => _households.Values;
 
     public List<Voter> GetVoters(Location location, Mobilizer mobilizer)
     {
-        return _priorityVoters.Select(v => _voters[v]).OrderByDescending(RelationshipScore).ToList();
+        return [.. _priorityVoters
+            .OrderByDescending(RelationshipScore)
+            .ThenBy(Distance)];
 
-        int RelationshipScore(Voter voter)
+        double RelationshipScore(Voter voter)
         {
-            int ZeroDistanceScore = 20;
-            double pointsLostPerMile = .25;
-            int ClassmatesScore = 5;
-            int HousematesScore = 10;
+            const double ZeroDistanceScore = 20;
+            const double PointsLostPerMile = 40;
+            const double ClassmatesScore = 5;
+            const double HousematesScore = 10;
 
-            int distanceScore = ZeroDistanceScore - (int)(pointsLostPerMile * location.CalculateDistance(voter.Location, DistanceUnits.Miles));
-            int ageScore = (voter.BirthDate - mobilizer.BirthDate.GetValueOrDefault()).Days < 18 * 30 ? ClassmatesScore : 0;
-            int classmatesScore = _housemates.TryGetValue(voter.ID, out var housemates) && housemates.Contains(mobilizer.ID!) ? HousematesScore : 0;
+            double distanceScore = Math.Min(0, ZeroDistanceScore - PointsLostPerMile * location.CalculateDistance(voter.Location, DistanceUnits.Miles));
+            double classmatesScore = (voter.BirthDate - mobilizer.BirthDate.GetValueOrDefault()).Days < 18 * 30 ? ClassmatesScore : 0;
+            double housematesScore = _housemates.TryGetValue(voter.ID, out var housemates) && housemates.Contains(mobilizer.ID!) ? HousematesScore : 0;
 
-            return distanceScore + ageScore + classmatesScore;
+            return distanceScore + classmatesScore + housematesScore;
         }
+
+        double Distance(Voter voter) => location.CalculateDistance(voter.Location, DistanceUnits.Miles);
     }
 
     public (Mobilizer, Location)? GetMobilizer(string voterID)
