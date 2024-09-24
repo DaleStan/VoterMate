@@ -81,7 +81,7 @@ internal static partial class Program
             {
                 _ = DateTime.TryParse(voterDB.Cells[i, 8].Value.ToString(), out var birthDate);
                 Location location = new(Convert.ToDouble(voterDB.Cells[i, 4].Value), Convert.ToDouble(voterDB.Cells[i, 5].Value));
-                voters[id] = new Voter(id, GetName(voterDB, i), location, birthDate);
+                voters[id] = new Voter(id, GetName(voterDB, i), voterDB.Cells[i, 2].Value.ToString()!, location, birthDate);
             }
         }
 

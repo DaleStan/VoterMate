@@ -32,18 +32,18 @@ public record Mobilizer(string? ID, string Name, DateTime? BirthDate)
     public string? Phone { get; set; }
 }
 
-public record Voter(string ID, string Name, Location Location, DateTime BirthDate)
+public record Voter(string ID, string Name, string NameAgeAddress, Location Location, DateTime BirthDate)
 {
     public bool WillContact { get; set; }
 
-    public void SaveTo(StreamWriter stream) => stream.WriteLine($"{ID}\t{Name}\t{Location.Latitude}\t{Location.Longitude}\t{BirthDate:yyyy-MM-dd}");
+    public void SaveTo(StreamWriter stream) => stream.WriteLine($"{ID}\t{Name}\t{NameAgeAddress}\t{Location.Latitude}\t{Location.Longitude}\t{BirthDate:yyyy-MM-dd}");
 
     public static Voter? LoadFrom(StreamReader stream)
     {
         if (stream.ReadLine() is string line)
         {
             var parts = line.Split('\t');
-            return new(parts[0], parts[1], new Location(double.Parse(parts[2]), double.Parse(parts[3])), DateTime.Parse(parts[4]));
+            return new(parts[0], parts[1], parts[2], new Location(double.Parse(parts[3]), double.Parse(parts[4])), DateTime.Parse(parts[5]));
         }
         return null;
     }

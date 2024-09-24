@@ -45,7 +45,7 @@ public partial class MobilizerPage : ContentPage
             border.Clicked += (_, _) => checkBox.IsChecked = !checkBox.IsChecked;
             dgVoters.Children.Add(checkBox);
 
-            Label label = new() { Text = voter.Name, Margin = new(3), VerticalOptions = LayoutOptions.Center };
+            Label label = new() { Text = voter.NameAgeAddress, Margin = new(3), VerticalOptions = LayoutOptions.Center };
             Grid.SetRow(label, i);
             Grid.SetColumn(label, 1);
             dgVoters.Children.Add(label);
