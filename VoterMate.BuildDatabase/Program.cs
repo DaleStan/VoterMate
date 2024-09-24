@@ -8,7 +8,7 @@ internal static partial class Program
 {
     private static void Main()
     {
-        Dictionary<string, List<string>> housemates = [];
+        Dictionary<string, HashSet<string>> housemates = [];
         // address -> (Location, List<voterID>)
         Dictionary<string, Household> households = [];
         // voterID -> Voter
@@ -32,7 +32,7 @@ internal static partial class Program
         catch (IOException) { }
     }
 
-    private static void ReadExcel(Dictionary<string, List<string>> housemates, Dictionary<string, Household> households, Dictionary<string, Voter> voters, HashSet<string> priorityVoters)
+    private static void ReadExcel(Dictionary<string, HashSet<string>> housemates, Dictionary<string, Household> households, Dictionary<string, Voter> voters, HashSet<string> priorityVoters)
     {
         HashSet<string> mobilizers = [];
 
@@ -98,7 +98,7 @@ internal static partial class Program
                 continue;
 
             if (!housemates.TryGetValue(housemate1, out var housemates1)) { housemates[housemate1] = housemates1 = []; }
-            if (!housemates.TryGetValue(housemate1, out var housemates2)) { housemates[housemate2] = housemates2 = []; }
+            if (!housemates.TryGetValue(housemate2, out var housemates2)) { housemates[housemate2] = housemates2 = []; }
             housemates1.Add(housemate2);
             housemates2.Add(housemate1);
         }
@@ -106,7 +106,7 @@ internal static partial class Program
         static string GetName(ExcelWorksheet sheet, int i) => NameFilter().Match(sheet.Cells[i, 2].Value.ToString()!).Groups[1].Value;
     }
 
-    private static void WriteTsv(Dictionary<string, List<string>> housemates, Dictionary<string, Household> households, Dictionary<string, Voter> voters, HashSet<string> priorityVoters)
+    private static void WriteTsv(Dictionary<string, HashSet<string>> housemates, Dictionary<string, Household> households, Dictionary<string, Voter> voters, HashSet<string> priorityVoters)
     {
         using (StreamWriter housematesSteam = new("housemates.tsv") { NewLine = "\n" })
             foreach (var (key, value) in housemates)
