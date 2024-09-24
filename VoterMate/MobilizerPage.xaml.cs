@@ -8,6 +8,8 @@ public partial class MobilizerPage : ContentPage
     private List<Voter> _voters;
     private int _page;
 
+    public Mobilizer Mobilizer => _mobilizer;
+
     public MobilizerPage(Location location, Mobilizer? mobilizer)
     {
         InitializeComponent();

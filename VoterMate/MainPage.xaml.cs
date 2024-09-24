@@ -1,4 +1,4 @@
-﻿using Microsoft.Maui.Devices.Sensors;
+﻿using CommunityToolkit.Maui.Views;
 using VoterMate.Database;
 
 namespace VoterMate;
@@ -7,7 +7,7 @@ public partial class MainPage : ContentPage
 {
     // Approximate distance in miles between degrees of longitude at equator, or between degrees of latitude. Actual value ranges apparently ranges from 68.7 to 69.4.
     private const double MilesPerDegree = 69;
-    private Household? _nearestHousehold;
+    private readonly Dictionary<Household, Expander> expanders = [];
     private Location? _location;
 
     public MainPage()
@@ -17,34 +17,53 @@ public partial class MainPage : ContentPage
         File.OpenWrite(Path.Combine(FileSystem.Current.AppDataDirectory, "phoneNumbers.csv")).Close();
     }
 
-    private async void SetHousehold(Location location, Household? value)
+    private async void SetHousehold(Location location, List<Household> households)
     {
-        if (_nearestHousehold != value || namesPanel.Children.Count == 0)
+        _location = location;
+
+        if (Navigation.NavigationStack[^1] is MobilizerPage mp)
         {
-            if (Navigation.NavigationStack.Count > 1)
+            if (!households.SelectMany(h => h.Mobilizers).Contains(mp.Mobilizer))
                 await Navigation.PopAsync();
+        }
 
-            namesPanel.Children.Clear();
+        while (namesPanel.Count > 0)
+            namesPanel.RemoveAt(0);
 
-            namesPanel.Children.Add(new Label
+        namesPanel.Add(new Label
+        {
+            Text = households.Count switch
             {
-                Text = (value != null) ? "You are at " + value.Address : "No mobilizer houses nearby",
-                Margin = new(3),
-                HorizontalTextAlignment = TextAlignment.Center
-            });
+                0 => "No mobilizer houses nearby",
+                1 => "You are at " + households[0].Address,
+                _ => "Select the house you are knocking on"
+            },
+            Margin = new(3),
+            HorizontalTextAlignment = TextAlignment.Center
+        });
 
-            Button button;
-
-            foreach (var mobilizer in value?.Mobilizers ?? [])
+        foreach (var household in households)
+        {
+            if (!expanders.TryGetValue(household, out var expander))
             {
-                string age = mobilizer.BirthDate.HasValue ? $"({(int)((DateTime.Now - mobilizer.BirthDate.Value).TotalDays / 365.24)})" : "(unknown age)";
-                button = new Button { Text = $"{mobilizer.Name} {age}", Margin = new Thickness(3) };
-                button.Clicked += (s, e) => (s as Button)!.Navigation.PushAsync(new MobilizerPage(location, mobilizer));
-                namesPanel.Add(button);
+                expander = new Expander
+                {
+                    Header = new Button { Text = household.Address, FontAttributes = FontAttributes.Bold },
+                    Content = (VerticalStackLayout)([.. household.Mobilizers.Select(MakeButton)]),
+                    Margin = 3
+                };
+
+                Button MakeButton(Mobilizer mobilizer)
+                {
+                    string age = mobilizer.BirthDate.HasValue ? $"({(int)((DateTime.Now - mobilizer.BirthDate.Value).TotalDays / 365.24)})" : "(unknown age)";
+                    Button button = new() { Text = $"{mobilizer.Name} {age}", Margin = new Thickness(23, 3), BackgroundColor = Colors.BlueViolet };
+                    button.Clicked += (s, e) => (s as Button)!.Navigation.PushAsync(new MobilizerPage(household.Location, mobilizer));
+                    return button;
+                }
             }
 
-            _nearestHousehold = value;
-            _location = location;
+            expander.IsExpanded = households.Count == 1;
+            namesPanel.Add(expander);
         }
     }
 
@@ -72,15 +91,17 @@ public partial class MainPage : ContentPage
 
     private void Geolocation_LocationChanged(object? sender, GeolocationLocationChangedEventArgs e)
     {
-        double squareFilterRange = 0.5; // 1/2 mile
-        double squareFilterLongitude = squareFilterRange / MilesPerDegree;
-        double squareFilterLatitude = squareFilterRange / MilesPerDegree / Math.Cos(e.Location.Longitude);
+        double householdFilterRange = 0.1; // 100 m
+        double squareFilterLongitude = householdFilterRange / 1.609 / MilesPerDegree;
+        double squareFilterLatitude = householdFilterRange / 1.609 / MilesPerDegree / Math.Cos(e.Location.Longitude);
 
-        var household = App.Database.GetHouseholds()
-            .Where(SquareFilter) // Premature optimization? Don't consider houses more than squareFilterRange away in either lat or lon.
-            .OrderBy(DistanceTo).FirstOrDefault();
+        var households = App.Database.GetHouseholds()
+            .Where(SquareFilter) // Premature optimization? Filter to a square before doing accurate distance calculations.
+            .OrderBy(DistanceTo)
+            .TakeWhile(h => DistanceTo(h) < householdFilterRange)
+            .ToList();
 
-        Dispatcher.Dispatch(() => SetHousehold(e.Location, household));
+        Dispatcher.Dispatch(() => SetHousehold(e.Location, households));
 
         bool SquareFilter(Household h)
         {
@@ -88,7 +109,7 @@ public partial class MainPage : ContentPage
                 && Math.Abs(h.Location.Longitude - e.Location.Longitude) < squareFilterLongitude;
         }
 
-        double DistanceTo(Household h) => h.Location.CalculateDistance(e.Location, DistanceUnits.Miles);
+        double DistanceTo(Household h) => h.Location.CalculateDistance(e.Location, DistanceUnits.Kilometers);
     }
 
     private async void MainPage_Loaded(object sender, EventArgs e)
