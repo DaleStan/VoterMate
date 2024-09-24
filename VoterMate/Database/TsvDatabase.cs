@@ -37,6 +37,7 @@ internal class TsvDatabase : IDatabase
     public List<Voter> GetVoters(Location location, Mobilizer mobilizer)
     {
         return [.. _priorityVoters
+            .Where(v => v.ID != mobilizer.ID)
             .OrderByDescending(RelationshipScore)
             .ThenBy(Distance)];
 
