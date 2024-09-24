@@ -55,9 +55,10 @@ internal class TsvDatabase : IDatabase
 
     public (Mobilizer, Location)? GetMobilizer(string voterID)
     {
-        var household = _households.Values.FirstOrDefault(h => h.Mobilizers.Any(m => m.ID == voterID));
-        if (household == null)
-            return null;
-        return (household.Mobilizers.First(m => m.ID == voterID), household.Location);
+        if (_voters.TryGetValue(voterID, out Voter? voter))
+        {
+            return (new Mobilizer(voterID, voter.Name, voter.BirthDate), voter.Location);
+        }
+        return null;
     }
 }

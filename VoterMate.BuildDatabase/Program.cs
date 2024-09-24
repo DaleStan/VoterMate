@@ -76,13 +76,9 @@ internal static partial class Program
         for (int i = 2; i <= rowCount; i++)
         {
             string id = voterDB.Cells[i, 1].Value.ToString()!;
-            // We don't need information on voters who are neither mobilizers nor priority.
-            if (priorityVoters.Contains(id) || mobilizers.Contains(id))
-            {
                 _ = DateTime.TryParse(voterDB.Cells[i, 8].Value.ToString(), out var birthDate);
                 Location location = new(Convert.ToDouble(voterDB.Cells[i, 4].Value), Convert.ToDouble(voterDB.Cells[i, 5].Value));
                 voters[id] = new Voter(id, GetName(voterDB, i), voterDB.Cells[i, 2].Value.ToString()!, location, birthDate);
-            }
         }
 
         var housemateDB = workbook.Worksheets["households"];
@@ -91,10 +87,7 @@ internal static partial class Program
         {
             string? housemate1 = housemateDB.Cells[i, 1].Value?.ToString();
             string? housemate2 = housemateDB.Cells[i, 2].Value?.ToString();
-            // We don't need information on voters who are neither mobilizers nor priority.
-            if (housemate1 == null || housemate2 == null
-                || (!priorityVoters.Contains(housemate1) && !mobilizers.Contains(housemate1))
-                || (!priorityVoters.Contains(housemate2) && !mobilizers.Contains(housemate2)))
+            if (housemate1 == null || housemate2 == null)
                 continue;
 
             if (!housemates.TryGetValue(housemate1, out var housemates1)) { housemates[housemate1] = housemates1 = []; }
