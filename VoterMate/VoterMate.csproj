@@ -58,7 +58,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <EmbeddedResource Include="Database\*.tsv" />
+		<EmbeddedResource Include="Database\*.tsv" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -69,19 +69,32 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\VoterMate.Database\VoterMate.Database.csproj" />
+		<ProjectReference Include="..\VoterMate.Database\VoterMate.Database.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Compile Update="MobilizerPage.xaml.cs">
-	    <DependentUpon>MobilizerPage.xaml</DependentUpon>
-	  </Compile>
+		<Compile Update="MobilizerPage.xaml.cs">
+			<DependentUpon>MobilizerPage.xaml</DependentUpon>
+		</Compile>
 	</ItemGroup>
 
 	<ItemGroup>
-	  <MauiXaml Update="MobilizerPage.xaml">
-	    <Generator>MSBuild:Compile</Generator>
-	  </MauiXaml>
+		<MauiXaml Update="MobilizerPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
 	</ItemGroup>
+
+	<Target Name="SetSourceRevisionId" BeforeTargets="InitializeSourceControlInformation">
+		<Exec
+			Command="git describe --long --always --dirty=-modified --exclude=* --abbrev=6"
+			ConsoleToMSBuild="True"
+			IgnoreExitCode="False"
+			>
+			<Output PropertyName="SourceRevisionId" TaskParameter="ConsoleOutput"/>
+		</Exec>
+		<PropertyGroup>
+			<SourceRevisionId>buildVoterMate built on $([System.DateTime]::Now.ToString("MM-dd a\t HH:mm:ss")) from $(SourceRevisionId)</SourceRevisionId>
+		</PropertyGroup>
+	</Target>
 
 </Project>

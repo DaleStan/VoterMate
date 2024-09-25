@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Maui.Views;
+using System.Reflection;
 using VoterMate.Database;
 
 namespace VoterMate;
@@ -17,6 +18,27 @@ public partial class MainPage : ContentPage
         InitializeComponent();
         File.OpenWrite(Path.Combine(FileSystem.Current.AppDataDirectory, "contactCommitments.csv")).Close();
         File.OpenWrite(Path.Combine(FileSystem.Current.AppDataDirectory, "phoneNumbers.csv")).Close();
+
+        lblBuildInfo.Text = GetBuildInfo();
+    }
+
+    public static string? GetBuildInfo()
+    {
+        const string BuildVersionMetadataPrefix = "+build";
+
+        var attribute = typeof(MainPage).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
+
+        if (attribute?.InformationalVersion != null)
+        {
+            var value = attribute.InformationalVersion;
+            var index = value.IndexOf(BuildVersionMetadataPrefix);
+            if (index > 0)
+            {
+                value = value[(index + BuildVersionMetadataPrefix.Length)..];
+                return value;
+            }
+        }
+        return default;
     }
 
     private async void SetHousehold(Location location, List<Household> households)
