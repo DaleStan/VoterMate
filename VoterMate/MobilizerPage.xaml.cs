@@ -5,6 +5,7 @@ namespace VoterMate;
 public partial class MobilizerPage : ContentPage
 {
     private readonly Mobilizer _mobilizer;
+    private readonly Location _location;
     private readonly IReadOnlyCollection<Voter> _voters;
     private readonly List<Voter> _fetchedVoters = [];
     private int _page;
@@ -14,6 +15,8 @@ public partial class MobilizerPage : ContentPage
     public MobilizerPage(Location location, Mobilizer? mobilizer)
     {
         InitializeComponent();
+
+        _location = location;
 
         if (mobilizer != null)
             nameRow.Height = new GridLength(0);
@@ -89,17 +92,23 @@ public partial class MobilizerPage : ContentPage
 
     public void Save()
     {
+        string name = Mobilizer.Name;
+        if (string.IsNullOrEmpty(name))
+            name = "<No name entered>";
+        else
+            name = '"' + name.Replace("\"", "\"\"") + '"';
+
         using StreamWriter sw = new(Path.Combine(FileSystem.Current.AppDataDirectory, "contactCommitments.csv"), true) { NewLine = "\n" };
         foreach (var voter in _fetchedVoters.Where(v => v.WillContact))
         {
             voter.WillContact = false;
-            string name = '"' + _mobilizer.Name.Replace("\"", "\"\"") + '"';
-            sw.WriteLine((_mobilizer.ID ?? name) + ',' + voter.ID);
+            sw.WriteLine($"{_mobilizer.ID ?? name},{voter.ID},{DateTime.Now:MMM dd HH:mm:ss},{_location.Latitude},{_location.Longitude}");
         }
 
         if (!string.IsNullOrEmpty(_mobilizer.Phone))
         {
-            File.AppendAllLines(Path.Combine(FileSystem.Current.AppDataDirectory, "phoneNumbers.csv"), [(_mobilizer.ID ?? _mobilizer.Name) + ',' + _mobilizer.Phone]);
+            string line = $"{_mobilizer.ID ?? name},{_mobilizer.Phone},{DateTime.Now:MMM dd HH:mm:ss},{_location.Latitude},{_location.Longitude}";
+            File.AppendAllLines(Path.Combine(FileSystem.Current.AppDataDirectory, "phoneNumbers.csv"), [line]);
         }
 
         App.Database.SaveShownFriends();
