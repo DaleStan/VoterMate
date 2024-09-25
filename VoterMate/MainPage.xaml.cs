@@ -125,6 +125,7 @@ public partial class MainPage : ContentPage
         }
 
         var (mobilizer, location) = info.Value;
+        await txtVoterID.HideSoftInputAsync(new CancellationTokenSource().Token);
         await Navigation.PushAsync(new MobilizerPage(location, mobilizer));
     }
 
