@@ -1,13 +1,12 @@
-﻿using System.Collections.Concurrent;
-using VoterMate.Database;
+﻿using VoterMate.Database;
 
 namespace VoterMate;
 
 public partial class MobilizerPage : ContentPage
 {
     private readonly Mobilizer _mobilizer;
-    private readonly List<Voter> _voters;
-    private static readonly ConcurrentDictionary<string, int> _nextPageToShow = [];
+    private readonly IReadOnlyCollection<Voter> _voters;
+    private readonly List<Voter> _fetchedVoters = [];
     private int _page;
 
     public Mobilizer Mobilizer => _mobilizer;
@@ -17,19 +16,13 @@ public partial class MobilizerPage : ContentPage
         InitializeComponent();
 
         if (mobilizer != null)
-        {
             nameRow.Height = new GridLength(0);
-            _ = _nextPageToShow.TryGetValue(mobilizer.ID!, out _page);
-        }
 
         _mobilizer = mobilizer ?? new Mobilizer(null, string.Empty, null);
 
         _voters = App.Database.GetVoters(location, _mobilizer);
         for (int i = 0; i < 101; i++)
             dgVoters.RowDefinitions.Add(new(GridLength.Auto));
-
-        if (_page * 100 > _voters.Count)
-            _page = 0; // Go back to the beginning if they've seen everything.
 
         LoadVoterPage();
     }
@@ -60,6 +53,8 @@ public partial class MobilizerPage : ContentPage
             Grid.SetRow(label, i);
             Grid.SetColumn(label, 1);
             dgVoters.Children.Add(label);
+
+            _fetchedVoters.Add(voter);
 
             i++;
         }
@@ -95,7 +90,7 @@ public partial class MobilizerPage : ContentPage
     public void Save()
     {
         using StreamWriter sw = new(Path.Combine(FileSystem.Current.AppDataDirectory, "contactCommitments.csv"), true) { NewLine = "\n" };
-        foreach (var voter in _voters.Where(v => v.WillContact))
+        foreach (var voter in _fetchedVoters.Where(v => v.WillContact))
         {
             voter.WillContact = false;
             string name = '"' + _mobilizer.Name.Replace("\"", "\"\"") + '"';
@@ -107,34 +102,8 @@ public partial class MobilizerPage : ContentPage
             File.AppendAllLines(Path.Combine(FileSystem.Current.AppDataDirectory, "phoneNumbers.csv"), [(_mobilizer.ID ?? _mobilizer.Name) + ',' + _mobilizer.Phone]);
         }
 
-        if (Mobilizer.ID != null)
-        {
-            _ = _nextPageToShow.TryGetValue(Mobilizer.ID, out var lastPage);
-            _nextPageToShow[Mobilizer.ID] = Math.Max(lastPage, _page + 1);
-            File.WriteAllLines(Path.Combine(FileSystem.Current.AppDataDirectory, "nextPageToShow.csv"), [.. _nextPageToShow.Select(kvp => kvp.Key + ',' + kvp.Value)]);
-        }
+        App.Database.SaveShownFriends();
     }
 
-    internal static async Task LoadLastSeenData(string file)
-    {
-        using Stream stream = File.OpenRead(file);
-        await LoadLastSeenData(stream);
-    }
-
-    internal static async Task LoadLastSeenData(FileResult file)
-    {
-        using Stream stream = await file.OpenReadAsync();
-        await LoadLastSeenData(stream);
-    }
-
-    internal static async Task LoadLastSeenData(Stream stream)
-    {
-        using StreamReader sr = new(stream);
-        while (await sr.ReadLineAsync() is string line)
-        {
-            var parts = line.Split(',');
-            if (int.TryParse(parts[1], out int page) && page >= 0)
-                _nextPageToShow[parts[0]] = page;
-        }
-    }
+    internal static Task LoadShownFriendsData(FileResult file) => App.Database.LoadShownFriends(file);
 }

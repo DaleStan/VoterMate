@@ -25,7 +25,7 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <Button Text="Export data" Margin="3" Clicked="Copy_Clicked"/>
-                <Button Text="Import next page info" Margin="3" Clicked="Import_Clicked" Grid.Column="1"/>
+                <Button Text="Import shown friends" Margin="3" Clicked="Import_Clicked" Grid.Column="1"/>
             </Grid>
         </StackLayout>
     </ScrollView>

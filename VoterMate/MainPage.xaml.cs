@@ -15,7 +15,6 @@ public partial class MainPage : ContentPage
         InitializeComponent();
         File.OpenWrite(Path.Combine(FileSystem.Current.AppDataDirectory, "contactCommitments.csv")).Close();
         File.OpenWrite(Path.Combine(FileSystem.Current.AppDataDirectory, "phoneNumbers.csv")).Close();
-        File.OpenWrite(Path.Combine(FileSystem.Current.AppDataDirectory, "nextPageToShow.csv")).Close();
     }
 
     private async void SetHousehold(Location location, List<Household> households)
@@ -99,8 +98,6 @@ public partial class MainPage : ContentPage
         {
             Application.Current!.Quit();
         }
-
-        await MobilizerPage.LoadLastSeenData(Path.Combine(FileSystem.Current.AppDataDirectory, "nextPageToShow.csv"));
     }
 
     private void Geolocation_ListeningFailed(object? sender, GeolocationListeningFailedEventArgs e)
@@ -142,12 +139,7 @@ public partial class MainPage : ContentPage
 
         try
         {
-            List<ShareFile> files = [
-                new(Path.Combine(FileSystem.Current.AppDataDirectory, "contactCommitments.csv")),
-                new(Path.Combine(FileSystem.Current.AppDataDirectory, "phoneNumbers.csv")),
-                new(Path.Combine(FileSystem.Current.AppDataDirectory, "nextPageToShow.csv")),
-            ];
-
+            List<ShareFile> files = [.. Directory.GetFiles(FileSystem.Current.AppDataDirectory, "*.csv").Select(f => new ShareFile(f))];
             await Share.Default.RequestAsync(new ShareMultipleFilesRequest { Files = files });
         }
         catch { }
@@ -175,6 +167,6 @@ public partial class MainPage : ContentPage
 
         var file = await FilePicker.PickAsync(new() { FileTypes = customFileType });
         if (file != null)
-            await MobilizerPage.LoadLastSeenData(file);
+            await MobilizerPage.LoadShownFriendsData(file);
     }
 }

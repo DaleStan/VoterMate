@@ -1,4 +1,5 @@
 ﻿using Microsoft.Maui.Devices.Sensors;
+using Microsoft.Maui.Storage;
 
 namespace VoterMate.Database;
 
@@ -6,7 +7,9 @@ public interface IDatabase
 {
     IEnumerable<Household> GetHouseholds();
     (Mobilizer, Location)? GetMobilizer(string voterID);
-    List<Voter> GetVoters(Location location, Mobilizer mobilizer);
+    IReadOnlyCollection<Voter> GetVoters(Location location, Mobilizer mobilizer);
+    Task LoadShownFriends(FileResult file);
+    void SaveShownFriends();
 }
 
 public record Household(string Address, Location Location, List<Mobilizer> Mobilizers)
