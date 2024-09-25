@@ -84,8 +84,4 @@
 	  </MauiXaml>
 	</ItemGroup>
 
-	<Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-	  <Exec Command="cd $(MSBuildProjectDirectory)\..\VoterMate.BuildDatabase\bin\$(Configuration)\net8.0\&#xD;&#xA;dotnet VoterMate.BuildDatabase.dll" />
-	</Target>
-
 </Project>

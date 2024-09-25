@@ -19,17 +19,9 @@ internal static partial class Program
         Directory.SetCurrentDirectory(Path.Combine(Path.GetDirectoryName(gitFolder)!, "VoterMate\\VoterMate\\Database"));
 
         var files = Directory.GetFiles(".", "*.tsv");
-        if (files.Length == 4 && files.Min(f => new FileInfo(f).LastWriteTime) > new FileInfo(typeof(Program).Assembly.Location).LastWriteTime)
-        {
-            return; // Already up to date;
-        }
 
         ReadExcel(housemates, households, voters, priorityVoters);
-        try
-        {
-            WriteTsv(housemates, households, voters, priorityVoters);
-        }
-        catch (IOException) { }
+        WriteTsv(housemates, households, voters, priorityVoters);
     }
 
     private static void ReadExcel(Dictionary<string, HashSet<string>> housemates, Dictionary<string, Household> households, Dictionary<string, Voter> voters, HashSet<string> priorityVoters)
@@ -76,9 +68,9 @@ internal static partial class Program
         for (int i = 2; i <= rowCount; i++)
         {
             string id = voterDB.Cells[i, 1].Value.ToString()!;
-                _ = DateTime.TryParse(voterDB.Cells[i, 8].Value.ToString(), out var birthDate);
-                Location location = new(Convert.ToDouble(voterDB.Cells[i, 4].Value), Convert.ToDouble(voterDB.Cells[i, 5].Value));
-                voters[id] = new Voter(id, GetName(voterDB, i), voterDB.Cells[i, 2].Value.ToString()!, location, birthDate);
+            _ = DateTime.TryParse(voterDB.Cells[i, 8].Value.ToString(), out var birthDate);
+            Location location = new(Convert.ToDouble(voterDB.Cells[i, 4].Value), Convert.ToDouble(voterDB.Cells[i, 5].Value));
+            voters[id] = new Voter(id, GetName(voterDB, i), voterDB.Cells[i, 2].Value.ToString()!, location, birthDate);
         }
 
         var housemateDB = workbook.Worksheets["households"];
