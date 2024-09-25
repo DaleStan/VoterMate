@@ -18,8 +18,6 @@ internal static partial class Program
         var gitFolder = new DirectoryInfo(LibGit2Sharp.Repository.Discover(Environment.CurrentDirectory)).Parent!.FullName;
         Directory.SetCurrentDirectory(Path.Combine(Path.GetDirectoryName(gitFolder)!, "VoterMate\\VoterMate\\Database"));
 
-        var files = Directory.GetFiles(".", "*.tsv");
-
         ReadExcel(housemates, households, voters, priorityVoters);
         WriteTsv(housemates, households, voters, priorityVoters);
     }
