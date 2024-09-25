@@ -15,6 +15,7 @@ public partial class MainPage : ContentPage
         InitializeComponent();
         File.OpenWrite(Path.Combine(FileSystem.Current.AppDataDirectory, "contactCommitments.csv")).Close();
         File.OpenWrite(Path.Combine(FileSystem.Current.AppDataDirectory, "phoneNumbers.csv")).Close();
+        File.OpenWrite(Path.Combine(FileSystem.Current.AppDataDirectory, "nextPageToShow.csv")).Close();
     }
 
     private async void SetHousehold(Location location, List<Household> households)
@@ -67,28 +68,6 @@ public partial class MainPage : ContentPage
         }
     }
 
-    private async void Copy_Clicked(object? sender, EventArgs e)
-    {
-        var button = (Button)sender!;
-        if (button.Opacity == 0)
-        {
-            button.Opacity = 1;
-            await Task.Delay(5000);
-            button.Opacity = 0;
-        }
-        else if (button.Opacity == 1)
-        {
-            try
-            {
-                List<ShareFile> files = [new(Path.Combine(FileSystem.Current.AppDataDirectory, "contactCommitments.csv")),
-                    new(Path.Combine(FileSystem.Current.AppDataDirectory, "phoneNumbers.csv"))];
-
-                await Share.Default.RequestAsync(new ShareMultipleFilesRequest { Files = files });
-            }
-            catch { }
-        }
-    }
-
     private void Geolocation_LocationChanged(object? sender, GeolocationLocationChangedEventArgs e)
     {
         double householdFilterRange = 0.1; // 100 m
@@ -120,6 +99,8 @@ public partial class MainPage : ContentPage
         {
             Application.Current!.Quit();
         }
+
+        await MobilizerPage.LoadLastSeenData(Path.Combine(FileSystem.Current.AppDataDirectory, "nextPageToShow.csv"));
     }
 
     private void Geolocation_ListeningFailed(object? sender, GeolocationListeningFailedEventArgs e)
@@ -142,7 +123,57 @@ public partial class MainPage : ContentPage
             await DisplayAlert("Not Found", $"The voter with ID OH{txtVoterID.Text} could not be found.", "OK");
             return;
         }
+
         var (mobilizer, location) = info.Value;
         await Navigation.PushAsync(new MobilizerPage(location, mobilizer));
+    }
+
+    private async void Copy_Clicked(object? sender, EventArgs e)
+    {
+        var grid = (Grid)((Button)sender!).Parent;
+        if (grid.Opacity == 0)
+        {
+            grid.Opacity = 1;
+            await Task.Delay(5000);
+            grid.Opacity = 0;
+            return;
+        }
+
+        try
+        {
+            List<ShareFile> files = [
+                new(Path.Combine(FileSystem.Current.AppDataDirectory, "contactCommitments.csv")),
+                new(Path.Combine(FileSystem.Current.AppDataDirectory, "phoneNumbers.csv")),
+                new(Path.Combine(FileSystem.Current.AppDataDirectory, "nextPageToShow.csv")),
+            ];
+
+            await Share.Default.RequestAsync(new ShareMultipleFilesRequest { Files = files });
+        }
+        catch { }
+    }
+
+    private async void Import_Clicked(object sender, EventArgs e)
+    {
+        var grid = (Grid)((Button)sender!).Parent;
+        if (grid.Opacity == 0)
+        {
+            grid.Opacity = 1;
+            await Task.Delay(5000);
+            grid.Opacity = 0;
+            return;
+        }
+
+        FilePickerFileType customFileType = new(new Dictionary<DevicePlatform, IEnumerable<string>>
+        {
+            [DevicePlatform.iOS] = ["public.comma-separated-values-text"], // UTType values
+            [DevicePlatform.Android] = ["text/*"], // MIME type
+            [DevicePlatform.WinUI] = [".csv"], // file extension
+            [DevicePlatform.Tizen] = ["*/*"],
+            [DevicePlatform.macOS] = ["csv"], // UTType values
+        });
+
+        var file = await FilePicker.PickAsync(new() { FileTypes = customFileType });
+        if (file != null)
+            await MobilizerPage.LoadLastSeenData(file);
     }
 }
