@@ -10,6 +10,8 @@ public partial class MainPage : ContentPage
     private readonly Dictionary<Household, Expander> expanders = [];
     private Location? _location;
 
+    const double locationFilterRange = 0.1; // 100 m
+
     public MainPage()
     {
         InitializeComponent();
@@ -19,13 +21,16 @@ public partial class MainPage : ContentPage
 
     private async void SetHousehold(Location location, List<Household> households)
     {
-        _location = location;
-
         if (Navigation.NavigationStack[^1] is MobilizerPage mp)
         {
+            if (_location?.CalculateDistance(location, DistanceUnits.Kilometers) < locationFilterRange)
+                return;
+
             if (!households.SelectMany(h => h.Mobilizers).Contains(mp.Mobilizer))
                 await Navigation.PopAsync();
         }
+
+        _location = location;
 
         while (namesPanel.Count > 0)
             namesPanel.RemoveAt(0);
@@ -69,14 +74,13 @@ public partial class MainPage : ContentPage
 
     private void Geolocation_LocationChanged(object? sender, GeolocationLocationChangedEventArgs e)
     {
-        double householdFilterRange = 0.1; // 100 m
-        double squareFilterLongitude = householdFilterRange / 1.609 / MilesPerDegree;
-        double squareFilterLatitude = householdFilterRange / 1.609 / MilesPerDegree / Math.Cos(e.Location.Longitude);
+        double squareFilterLongitude = locationFilterRange / 1.609 / MilesPerDegree;
+        double squareFilterLatitude = locationFilterRange / 1.609 / MilesPerDegree / Math.Cos(e.Location.Longitude);
 
         var households = App.Database.GetHouseholds()
             .Where(SquareFilter) // Premature optimization? Filter to a square before doing accurate distance calculations.
             .OrderBy(DistanceTo)
-            .TakeWhile(h => DistanceTo(h) < householdFilterRange)
+            .TakeWhile(h => DistanceTo(h) < locationFilterRange)
             .ToList();
 
         Dispatcher.Dispatch(() => SetHousehold(e.Location, households));
