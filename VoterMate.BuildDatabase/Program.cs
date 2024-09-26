@@ -68,7 +68,7 @@ internal static partial class Program
             string id = voterDB.Cells[i, 1].Value.ToString()!;
             _ = DateTime.TryParse(voterDB.Cells[i, 8].Value.ToString(), out var birthDate);
             Location location = new(Convert.ToDouble(voterDB.Cells[i, 4].Value), Convert.ToDouble(voterDB.Cells[i, 5].Value));
-            voters[id] = new Voter(id, GetName(voterDB, i), voterDB.Cells[i, 2].Value.ToString()!, location, birthDate);
+            voters[id] = new Voter(id, GetName(voterDB, i), voterDB.Cells[i, 2].Value.ToString()!.Trim(), location, birthDate);
         }
 
         var housemateDB = workbook.Worksheets["households"];
@@ -111,7 +111,7 @@ internal static partial class Program
 
 
 
-    [GeneratedRegex(@"^([^[]*)\s+\[")]
+    [GeneratedRegex(@"^([^[]*?)\s+\[")]
     private static partial Regex NameFilter();
 }
 

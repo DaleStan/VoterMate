@@ -102,12 +102,12 @@ public partial class MobilizerPage : ContentPage
         foreach (var voter in _fetchedVoters.Where(v => v.WillContact))
         {
             voter.WillContact = false;
-            sw.WriteLine($"{_mobilizer.ID ?? name},{voter.ID},{DateTime.Now:MMM dd HH:mm:ss},{_location.Latitude},{_location.Longitude}");
+            sw.WriteLine($"{_mobilizer.ID ?? name},{voter.ID},{DateTime.Now:MMM dd HH:mm:ss},{_location.Latitude:0.####},{_location.Longitude:0.####}");
         }
 
         if (!string.IsNullOrEmpty(_mobilizer.Phone))
         {
-            string line = $"{_mobilizer.ID ?? name},{_mobilizer.Phone},{DateTime.Now:MMM dd HH:mm:ss},{_location.Latitude},{_location.Longitude}";
+            string line = $"{_mobilizer.ID ?? name},{_mobilizer.Phone},{DateTime.Now:MMM dd HH:mm:ss},{_location.Latitude:0.####},{_location.Longitude:0.####}";
             File.AppendAllLines(Path.Combine(FileSystem.Current.AppDataDirectory, "phoneNumbers.csv"), [line]);
         }
 
