@@ -31,7 +31,22 @@ public record Household(string Address, Location Location, List<Mobilizer> Mobil
 
 public record Mobilizer(string? ID, string Name, DateTime? BirthDate)
 {
-    public string Name { get; set; } = Name;
+    private string _name = Name;
+
+    public string Name
+    {
+        get => _name;
+        set
+        {
+            if (_name != value)
+            {
+                _name = value;
+                NameChanged = true;
+            }
+        }
+    }
+    // Note: This must be declared after Name, so the constructor will re-initialize it to false.
+    public bool NameChanged { get; private set; } = false;
     public string? Phone { get; set; }
 }
 

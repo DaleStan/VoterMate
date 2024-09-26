@@ -19,7 +19,12 @@ public partial class MobilizerPage : ContentPage
         _location = location;
 
         if (mobilizer != null)
+        {
             nameRow.Height = new GridLength(0);
+            Title = mobilizer.Name;
+        }
+        else
+            btnEdit.IconImageSource = null;
 
         _mobilizer = mobilizer ?? new Mobilizer(null, string.Empty, null);
 
@@ -105,9 +110,10 @@ public partial class MobilizerPage : ContentPage
             sw.WriteLine($"{_mobilizer.ID ?? name},{voter.ID},{DateTime.Now:MMM dd HH:mm:ss},{_location.Latitude:0.####},{_location.Longitude:0.####}");
         }
 
-        if (!string.IsNullOrEmpty(_mobilizer.Phone))
+        if (!string.IsNullOrEmpty(_mobilizer.Phone) || Mobilizer.NameChanged)
         {
-            string line = $"{_mobilizer.ID ?? name},{_mobilizer.Phone},{DateTime.Now:MMM dd HH:mm:ss},{_location.Latitude:0.####},{_location.Longitude:0.####}";
+            string? newName = Mobilizer.NameChanged ? name : null;
+            string line = $"{_mobilizer.ID ?? name},{_mobilizer.Phone},{DateTime.Now:MMM dd HH:mm:ss},{_location.Latitude:0.####},{_location.Longitude:0.####},{newName}";
             File.AppendAllLines(Path.Combine(FileSystem.Current.AppDataDirectory, "phoneNumbers.csv"), [line]);
         }
 
@@ -115,4 +121,11 @@ public partial class MobilizerPage : ContentPage
     }
 
     internal static Task LoadShownFriendsData(FileResult file) => App.Database.LoadShownFriends(file);
+
+    private async void Edit_Clicked(object sender, EventArgs e)
+    {
+        var newName = await DisplayPromptAsync("Edit name", null, initialValue: Mobilizer.Name);
+        if (newName != null)
+            Title = Mobilizer.Name = newName;
+    }
 }
