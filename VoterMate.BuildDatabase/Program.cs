@@ -55,7 +55,7 @@ internal static partial class Program
 
             if (!households.TryGetValue(address, out var household))
             {
-                Location location = new(Convert.ToDouble(mobilizerDB.Cells[i, 4].Value), Convert.ToDouble(mobilizerDB.Cells[i, 5].Value));
+                Location location = new(Convert.ToDouble(mobilizerDB.Cells[i, 6].Value), Convert.ToDouble(mobilizerDB.Cells[i, 7].Value));
                 household = households[address] = new(address, location, []);
             }
             household.Mobilizers.Add(new(id, string.Empty, null));
