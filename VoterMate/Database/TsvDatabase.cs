@@ -55,7 +55,7 @@ internal class TsvDatabase : IDatabase
     public void SaveShownFriends()
     {
         File.WriteAllLines(Path.Combine(FileSystem.Current.AppDataDirectory, "friendsShown.csv"),
-            [.. _friendsShown.Select(kvp => kvp.Key + ',' + string.Join(',', kvp.Value))]);
+            [.. _friendsShown.SelectMany(kvp => kvp.Value.Select(val => kvp.Key + ',' + val))]);
     }
 
     public async Task LoadShownFriends(FileResult file)
