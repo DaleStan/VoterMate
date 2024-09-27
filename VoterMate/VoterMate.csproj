@@ -84,7 +84,6 @@
 	</ItemGroup>
 
 	<Target Name="SetSourceRevisionId" BeforeTargets="InitializeSourceControlInformation">
-		<Exec Command="set path"></Exec>
 		<Exec
 			Command="&quot;C:\Program Files\Git\cmd\git&quot; describe --long --always --dirty=-modified --exclude=* --abbrev=6"
 			ConsoleToMSBuild="True"
