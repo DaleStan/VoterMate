@@ -7,6 +7,7 @@
 		<Nullable>enable</Nullable>
 		<RunPostBuildEvent>OnOutputUpdated</RunPostBuildEvent>
 		<AccelerateBuildsInVisualStudio>false</AccelerateBuildsInVisualStudio>
+		<SourceRevisionId>buildVoter Excel data updated on $([System.IO.File]::GetLastWriteTime('VoterMate.BuildDatabase\schema.xlsx').ToString("MM-dd a\t HH:mm:ss"))</SourceRevisionId>
 	</PropertyGroup>
 
 	<ItemGroup>

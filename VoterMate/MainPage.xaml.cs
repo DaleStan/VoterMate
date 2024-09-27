@@ -19,7 +19,8 @@ public partial class MainPage : ContentPage
         File.OpenWrite(Path.Combine(FileSystem.Current.AppDataDirectory, "contactCommitments.csv")).Close();
         File.OpenWrite(Path.Combine(FileSystem.Current.AppDataDirectory, "phoneNumbers.csv")).Close();
 
-        lblBuildInfo.Text = GetBuildInfo();
+        using StreamReader sr = new(typeof(TsvDatabase).Assembly.GetManifestResourceStream("VoterMate.Database.voterDataDate.tsv")!);
+        lblBuildInfo.Text = GetBuildInfo() + "\n" + sr.ReadToEnd();
     }
 
     public static string? GetBuildInfo()

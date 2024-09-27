@@ -20,7 +20,28 @@ internal static partial class Program
 
         ReadExcel(housemates, households, voters, priorityVoters);
         WriteTsv(housemates, households, voters, priorityVoters);
+        File.WriteAllText("voterDataDate.tsv", GetBuildInfo() ?? "Voter data date/time unknown");
     }
+
+    public static string? GetBuildInfo()
+    {
+        const string BuildVersionMetadataPrefix = "+build";
+
+        var attribute = typeof(Program).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
+
+        if (attribute?.InformationalVersion != null)
+        {
+            var value = attribute.InformationalVersion;
+            var index = value.IndexOf(BuildVersionMetadataPrefix);
+            if (index > 0)
+            {
+                value = value[(index + BuildVersionMetadataPrefix.Length)..];
+                return value;
+            }
+        }
+        return default;
+    }
+
 
     private static void ReadExcel(Dictionary<string, HashSet<string>> housemates, Dictionary<string, Household> households, Dictionary<string, Voter> voters, HashSet<string> priorityVoters)
     {
