@@ -16,9 +16,6 @@ public partial class MainPage : ContentPage
     public MainPage()
     {
         InitializeComponent();
-        File.OpenWrite(Path.Combine(FileSystem.Current.AppDataDirectory, "contactCommitments.csv")).Close();
-        File.OpenWrite(Path.Combine(FileSystem.Current.AppDataDirectory, "phoneNumbers.csv")).Close();
-
         using StreamReader sr = new(typeof(TsvDatabase).Assembly.GetManifestResourceStream("VoterMate.Database.voterDataDate.tsv")!);
         lblBuildInfo.Text = GetBuildInfo() + "\n" + sr.ReadToEnd();
     }
@@ -50,7 +47,10 @@ public partial class MainPage : ContentPage
                 return;
 
             if (!households.SelectMany(h => h.Mobilizers).Contains(mp.Mobilizer))
+            {
                 await Navigation.PopAsync();
+                LogEvent("Auto-closed mobilizer page", mp.Mobilizer.ID, location);
+            }
         }
 
         _location = location;
@@ -85,8 +85,14 @@ public partial class MainPage : ContentPage
                 {
                     string age = mobilizer.BirthDate.HasValue ? $"({(int)((DateTime.Now - mobilizer.BirthDate.Value).TotalDays / 365.24)})" : "(unknown age)";
                     Button button = new() { Text = $"{mobilizer.Name} {age}", Margin = new Thickness(23, 3), BackgroundColor = Colors.BlueViolet };
-                    button.Clicked += (s, e) => (s as Button)!.Navigation.PushAsync(new MobilizerPage(household.Location, mobilizer));
+                    button.Clicked += Clicked;
                     return button;
+
+                    void Clicked(object? sender, EventArgs e)
+                    {
+                        LogEvent("Opening mobilizer page (selected)", mobilizer.ID, location);
+                        (sender as Button)!.Navigation.PushAsync(new MobilizerPage(household.Location, mobilizer));
+                    }
                 }
             }
 
@@ -97,6 +103,8 @@ public partial class MainPage : ContentPage
 
     private void Geolocation_LocationChanged(object? sender, GeolocationLocationChangedEventArgs e)
     {
+        LogEvent("Moving", null, e.Location);
+
         double squareFilterLongitude = locationFilterRange / 1.609 / MilesPerDegree;
         double squareFilterLatitude = locationFilterRange / 1.609 / MilesPerDegree / Math.Cos(e.Location.Longitude);
 
@@ -125,7 +133,15 @@ public partial class MainPage : ContentPage
         {
             Application.Current!.Quit();
         }
+
+        Window.Resumed += Window_Resumed;
+        Window.Deactivated += Window_Deactivated;
+
+        LogEvent("Started", null, _location ?? await Geolocation.GetLastKnownLocationAsync());
     }
+
+    private async void Window_Deactivated(object? sender, EventArgs e) => LogEvent("Deactivated", null, _location ?? await Geolocation.GetLastKnownLocationAsync());
+    private async void Window_Resumed(object? sender, EventArgs e) => LogEvent("Resumed", null, await Geolocation.GetLocationAsync());
 
     private void Geolocation_ListeningFailed(object? sender, GeolocationListeningFailedEventArgs e)
     {
@@ -136,7 +152,12 @@ public partial class MainPage : ContentPage
     private void NotListed_Clicked(object sender, EventArgs e)
     {
         if (_location != null)
+        {
+            LogEvent("Opening mobilizer page (not listed)", null, _location);
             Navigation.PushAsync(new MobilizerPage(_location, null));
+        }
+        else
+            DisplayAlert("Unknown location", $"Friend lists cannot be displayed without a voter ID or location information.", "OK");
     }
 
     private async void Lookup_Clicked(object sender, EventArgs e)
@@ -149,6 +170,7 @@ public partial class MainPage : ContentPage
         }
 
         var (mobilizer, location) = info.Value;
+        LogEvent("Opening mobilizer page (ID lookup)", mobilizer.ID, _location);
         await txtVoterID.HideSoftInputAsync(new CancellationTokenSource().Token);
         await Navigation.PushAsync(new MobilizerPage(location, mobilizer));
     }
@@ -195,5 +217,18 @@ public partial class MainPage : ContentPage
         var file = await FilePicker.PickAsync(new() { FileTypes = customFileType });
         if (file != null)
             await MobilizerPage.LoadShownFriendsData(file);
+    }
+
+    internal static void LogEvent(string @event, string? data, Location? location)
+    {
+        string line;
+        if (location == null)
+            line = $"{@event},{data},{DateTime.Now:MM/dd HH:mm:ss},,Unknown,Unknown";
+        else if (location.Speed == null)
+            line = $"{@event},{data},{DateTime.Now:MM/dd HH:mm:ss},,{location.Latitude:0.####},{location.Longitude:0.####}";
+        else
+            line = $"{@event},{data},{DateTime.Now:MM/dd HH:mm:ss},{location.Speed:0.##m/s},{location.Latitude:0.####},{location.Longitude:0.####}";
+
+        File.AppendAllLines(Path.Combine(FileSystem.Current.AppDataDirectory, "travelLog.csv"), [line]);
     }
 }

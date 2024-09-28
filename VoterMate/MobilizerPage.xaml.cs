@@ -97,6 +97,8 @@ public partial class MobilizerPage : ContentPage
 
     public void Save()
     {
+        MainPage.LogEvent("Closing mobilizer page (Note: Reports household location)", Mobilizer.ID, _location);
+
         string name = Mobilizer.Name;
         if (string.IsNullOrEmpty(name))
             name = "<No name entered>";
