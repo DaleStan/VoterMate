@@ -233,13 +233,7 @@ public partial class MainPage : ContentPage
     }
 
     internal void LogEvent(string @event, string? data, Location? location)
-    {
-        TravelLog line = new(Canvasser, @event, data, location?.Speed, location?.Latitude, location?.Longitude);
-
-        using CsvWriter csv = new(new StreamWriter(Path.Combine(FileSystem.Current.AppDataDirectory, "travelLog_v2.csv"), true), CultureInfo.InvariantCulture);
-        csv.WriteRecord(line);
-        csv.NextRecord();
-    }
+        => App.TravelLog.Append(new TravelLog(Canvasser, @event, data, location?.Speed, location?.Latitude, location?.Longitude));
 
     private void Settings_Clicked(object sender, EventArgs e) => Navigation.PushAsync(new SettingsPage(this));
 
@@ -265,19 +259,19 @@ public partial class MainPage : ContentPage
         File.WriteAllText(Path.Combine(FileSystem.Current.AppDataDirectory, "canvasser.txt"), Canvasser);
     }
 
+    private static readonly CsvConfiguration _csvConfiguration = new(CultureInfo.InvariantCulture) { HasHeaderRecord = false };
+
     private void UpdateTravelLog()
     {
         string oldLogPath = Path.Combine(FileSystem.Current.AppDataDirectory, "travelLog.csv");
-        string newLogPath = Path.Combine(FileSystem.Current.AppDataDirectory, "travelLog_v2.csv");
 
-        using CsvWriter csv = new(new StreamWriter(newLogPath), CultureInfo.InvariantCulture);
-        csv.WriteRecords(ReadOldRecords());
+        App.TravelLog.Append(ReadOldRecords());
 
         File.Delete(oldLogPath);
 
         IEnumerable<TravelLog> ReadOldRecords()
         {
-            using CsvDataReader dr = new(new(new StreamReader(oldLogPath), new CsvConfiguration(CultureInfo.InvariantCulture) { HasHeaderRecord = false }));
+            using CsvDataReader dr = new(new(File.OpenText(oldLogPath), _csvConfiguration));
             while (dr.Read())
             {
                 int count = dr.FieldCount;
@@ -291,16 +285,14 @@ public partial class MainPage : ContentPage
     private void UpdateContactCommitments()
     {
         string oldCommitmentsPath = Path.Combine(FileSystem.Current.AppDataDirectory, "contactCommitments.csv");
-        string newCommitmentsPath = Path.Combine(FileSystem.Current.AppDataDirectory, "contactCommitments_v2.csv");
 
-        using CsvWriter csv = new(new StreamWriter(newCommitmentsPath), CultureInfo.InvariantCulture);
-        csv.WriteRecords(ReadOldRecords());
+        App.ContactCommitments.Append(ReadOldRecords());
 
         File.Delete(oldCommitmentsPath);
 
-        IEnumerable<object> ReadOldRecords()
+        IEnumerable<ContactCommitment> ReadOldRecords()
         {
-            using CsvDataReader dr = new(new CsvReader(new StreamReader(oldCommitmentsPath), new CsvConfiguration(CultureInfo.InvariantCulture) { HasHeaderRecord = false }));
+            using CsvDataReader dr = new(new CsvReader(File.OpenText(oldCommitmentsPath), _csvConfiguration));
             while (dr.Read())
             {
                 int count = dr.FieldCount;
@@ -316,16 +308,14 @@ public partial class MainPage : ContentPage
     private void UpdatePhoneNumbers()
     {
         string oldPhonePath = Path.Combine(FileSystem.Current.AppDataDirectory, "phoneNumbers.csv");
-        string newPhonePath = Path.Combine(FileSystem.Current.AppDataDirectory, "phoneNumbers_v2.csv");
 
-        using CsvWriter csv = new(new StreamWriter(newPhonePath), CultureInfo.InvariantCulture);
-        csv.WriteRecords(ReadOldRecords());
+        App.PhoneNumbers.Append(ReadOldRecords());
 
         File.Delete(oldPhonePath);
 
-        IEnumerable<object> ReadOldRecords()
+        IEnumerable<PhoneNumber> ReadOldRecords()
         {
-            using CsvDataReader dr = new(new CsvReader(new StreamReader(oldPhonePath), new CsvConfiguration(CultureInfo.InvariantCulture) { HasHeaderRecord = false }));
+            using CsvDataReader dr = new(new CsvReader(File.OpenText(oldPhonePath), _csvConfiguration));
             while (dr.Read())
             {
                 int count = dr.FieldCount;

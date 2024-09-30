@@ -115,11 +115,7 @@ public partial class MobilizerPage : ContentPage
             }
 
         if (!string.IsNullOrEmpty(_mobilizer.Phone) || Mobilizer.NameChanged)
-        {
-            string? newName = Mobilizer.NameChanged ? name : null;
-            using CsvWriter csv = new(new StreamWriter(Path.Combine(FileSystem.Current.AppDataDirectory, "phoneNumbers.csv"), true), CultureInfo.InvariantCulture);
-            csv.WriteRecord(new PhoneNumber(_mainPage.Canvasser, _mobilizer.ID ?? name, _mobilizer.Phone, _location.Latitude, _location.Longitude, newName));
-        }
+            App.PhoneNumbers.Append(new PhoneNumber(_mainPage.Canvasser, _mobilizer.ID ?? name, _mobilizer.Phone, _location.Latitude, _location.Longitude, Mobilizer.NameChanged ? name : null));
 
         App.Database.SaveShownFriends();
     }
