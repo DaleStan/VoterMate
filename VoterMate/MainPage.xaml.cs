@@ -81,24 +81,46 @@ public partial class MainPage : ContentPage
 
         foreach (var household in households)
         {
+            Grid grid = [.. household.Mobilizers.SelectMany(MakeButtons)];
+            grid.RowDefinitions = [.. household.Mobilizers.Select(_ => new RowDefinition())];
+            grid.ColumnDefinitions = [new(), new(GridLength.Auto)];
+            grid.Margin = new(20, 0);
+
             Expander expander = new()
             {
                 Header = new Button { Text = household.Address, FontAttributes = FontAttributes.Bold },
-                Content = (VerticalStackLayout)([.. household.Mobilizers.Select(MakeButton)]),
+                Content = grid,
                 Margin = 3
             };
 
-            Button MakeButton(Mobilizer mobilizer)
+            Button[] MakeButtons(Mobilizer mobilizer, int i)
             {
                 string age = mobilizer.BirthDate.HasValue ? $"({(int)((DateTime.Now - mobilizer.BirthDate.Value).TotalDays / 365.24)})" : "(unknown age)";
-                Button button = new() { Text = $"{mobilizer.Name} {age}", Margin = new Thickness(23, 3), BackgroundColor = Colors.BlueViolet };
+                Button button = new() { Text = $"{mobilizer.Name} {age}", Margin = 3, BackgroundColor = Colors.BlueViolet };
                 button.Clicked += Clicked;
-                return button;
+                Grid.SetRow(button, i);
+
+                Button note = new() { Text = App.MobilizerNotes.ContainsKey(mobilizer.ID!) ? "View/edit notes" : "Add note", Margin = 3, Background = Colors.BlueViolet };
+                Grid.SetRow(note, i);
+                Grid.SetColumn(note, 1);
+                note.Clicked += AddNote;
+
+                return [button, note];
 
                 void Clicked(object? sender, EventArgs e)
                 {
                     LogEvent("Opening mobilizer page (selected)", mobilizer.ID, location);
-                    (sender as Button)!.Navigation.PushAsync(new MobilizerPage(household.Location, mobilizer, this));
+                    Navigation.PushAsync(new MobilizerPage(household.Location, mobilizer, this));
+                }
+                async void AddNote(object? sender, EventArgs e)
+                {
+                    _ = App.MobilizerNotes.TryGetValue(mobilizer.ID!, out var notes);
+                    notes = await DisplayPromptAsync("Notes", null, placeholder: "Add notes about " + mobilizer.Name, initialValue: notes);
+                    if (notes != null)
+                    {
+                        App.MobilizerNotes[mobilizer.ID!] = notes;
+                        ((Button)sender!).Text = "View/edit notes";
+                    }
                 }
             }
 
