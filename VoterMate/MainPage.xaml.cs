@@ -1,6 +1,6 @@
 ﻿using CommunityToolkit.Maui.Views;
-using CsvHelper.Configuration;
 using CsvHelper;
+using CsvHelper.Configuration;
 using System.Globalization;
 using System.Reflection;
 using VoterMate.Database;
@@ -11,11 +11,10 @@ public partial class MainPage : ContentPage
 {
     // Approximate distance in miles between degrees of longitude at equator, or between degrees of latitude. Actual value ranges apparently ranges from 68.7 to 69.4.
     private const double MilesPerDegree = 69;
-    private readonly Dictionary<Household, Expander> expanders = [];
     private Location? _location;
     internal string Canvasser { get; private set; }
 
-    const double locationFilterRange = 0.1; // 100 m
+    private const double locationFilterRange = 0.1; // 100 m
 
     public MainPage()
     {
@@ -82,27 +81,24 @@ public partial class MainPage : ContentPage
 
         foreach (var household in households)
         {
-            if (!expanders.TryGetValue(household, out var expander))
+            Expander expander = new()
             {
-                expander = new Expander
-                {
-                    Header = new Button { Text = household.Address, FontAttributes = FontAttributes.Bold },
-                    Content = (VerticalStackLayout)([.. household.Mobilizers.Select(MakeButton)]),
-                    Margin = 3
-                };
+                Header = new Button { Text = household.Address, FontAttributes = FontAttributes.Bold },
+                Content = (VerticalStackLayout)([.. household.Mobilizers.Select(MakeButton)]),
+                Margin = 3
+            };
 
-                Button MakeButton(Mobilizer mobilizer)
-                {
-                    string age = mobilizer.BirthDate.HasValue ? $"({(int)((DateTime.Now - mobilizer.BirthDate.Value).TotalDays / 365.24)})" : "(unknown age)";
-                    Button button = new() { Text = $"{mobilizer.Name} {age}", Margin = new Thickness(23, 3), BackgroundColor = Colors.BlueViolet };
-                    button.Clicked += Clicked;
-                    return button;
+            Button MakeButton(Mobilizer mobilizer)
+            {
+                string age = mobilizer.BirthDate.HasValue ? $"({(int)((DateTime.Now - mobilizer.BirthDate.Value).TotalDays / 365.24)})" : "(unknown age)";
+                Button button = new() { Text = $"{mobilizer.Name} {age}", Margin = new Thickness(23, 3), BackgroundColor = Colors.BlueViolet };
+                button.Clicked += Clicked;
+                return button;
 
-                    void Clicked(object? sender, EventArgs e)
-                    {
-                        LogEvent("Opening mobilizer page (selected)", mobilizer.ID, location);
-                        (sender as Button)!.Navigation.PushAsync(new MobilizerPage(household.Location, mobilizer, this));
-                    }
+                void Clicked(object? sender, EventArgs e)
+                {
+                    LogEvent("Opening mobilizer page (selected)", mobilizer.ID, location);
+                    (sender as Button)!.Navigation.PushAsync(new MobilizerPage(household.Location, mobilizer, this));
                 }
             }
 
