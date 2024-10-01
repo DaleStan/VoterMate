@@ -7,6 +7,13 @@ internal record ContactCommitment(string Canvasser, string Mobilizer, string Fri
     { }
 }
 
+internal record DoorKnock(string Canvasser, string Address, string Result, string Time)
+{
+    public DoorKnock(string Canvasser, string Address, string Result) :
+        this(Canvasser, Address, Result, DateTime.Now.ToString("MM/dd HH:mm:ss"))
+    { }
+}
+
 internal record PhoneNumber(string Canvasser, string Mobilizer, string? Phone, string Time, string Latitude, string Longitude, string? NewName)
 {
     public PhoneNumber(string Canvasser, string Mobilizer, string? Phone, double latitude, double longitude, string? newName) :

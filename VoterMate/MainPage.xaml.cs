@@ -87,17 +87,41 @@ public partial class MainPage : ContentPage
 
         foreach (var household in households)
         {
+            Expander expander = new()
+            {
+                Header = new Button { Text = household.Address, FontAttributes = FontAttributes.Bold },
+                Margin = 3
+            };
+
+            if (App.DoorsKnocked.ContainsKey(household.Address))
+                ((Button)expander.Header).BackgroundColor = Colors.ForestGreen;
+
             Grid grid = [.. household.Mobilizers.SelectMany(MakeButtons)];
             grid.RowDefinitions = [.. household.Mobilizers.Select(_ => new RowDefinition())];
             grid.ColumnDefinitions = [new(), new(GridLength.Auto)];
             grid.Margin = new(20, 0);
 
-            Expander expander = new()
+            grid.RowDefinitions.Add(new());
+            Button noResponse = new() { Text = "Other mobilizer", Margin = 3, BackgroundColor = Colors.BlueViolet };
+            noResponse.Clicked += (s, e) =>
             {
-                Header = new Button { Text = household.Address, FontAttributes = FontAttributes.Bold },
-                Content = grid,
-                Margin = 3
+                App.DoorsKnocked.AddValue(new(Canvasser, household.Address, "Other mobilizer"));
+                NotListed_Clicked(s, e);
+                ((Button)expander.Header).BackgroundColor = Colors.ForestGreen;
             };
+            grid.AddWithSpan(noResponse, grid.RowDefinitions.Count - 1, columnSpan: 2);
+
+            grid.RowDefinitions.Add(new());
+            noResponse = new() { Text = "No response", Margin = 3, BackgroundColor = Colors.PaleVioletRed };
+            noResponse.Clicked += (_, _) =>
+            {
+                expander.IsExpanded = false;
+                App.DoorsKnocked.AddValue(new(Canvasser, household.Address, "No response"));
+                ((Button)expander.Header).BackgroundColor = Colors.ForestGreen;
+            };
+            grid.AddWithSpan(noResponse, grid.RowDefinitions.Count - 1, columnSpan: 2);
+
+            expander.Content = grid;
 
             Button[] MakeButtons(Mobilizer mobilizer, int i)
             {
@@ -113,10 +137,12 @@ public partial class MainPage : ContentPage
 
                 return [button, note];
 
-                void Clicked(object? sender, EventArgs e)
+                async void Clicked(object? sender, EventArgs e)
                 {
-                    LogEvent("Opening mobilizer page (selected)", mobilizer.ID, location);
-                    Navigation.PushAsync(new MobilizerPage(household.Location, mobilizer, this));
+                    LogEvent("Opening mobilizer page (selected)", mobilizer.ID, _location);
+                    App.DoorsKnocked.AddValue(new(Canvasser, household.Address, mobilizer.ID!));
+                    await Navigation.PushAsync(new MobilizerPage(household.Location, mobilizer, this));
+                    ((Button)expander.Header).BackgroundColor = Colors.ForestGreen;
                 }
                 async void AddNote(object? sender, EventArgs e)
                 {
@@ -202,7 +228,7 @@ public partial class MainPage : ContentPage
         Geolocation.StartListeningForegroundAsync(new GeolocationListeningRequest(GeolocationAccuracy.Best));
     }
 
-    private void NotListed_Clicked(object sender, EventArgs e)
+    private void NotListed_Clicked(object? sender, EventArgs e)
     {
         if (_location != null)
         {
