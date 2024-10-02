@@ -6,21 +6,36 @@ using VoterMate.Database;
 
 internal static partial class Program
 {
-    private static void Main()
+    private static string[] args = null!;
+
+    private static void Main(string[] args)
     {
+        Program.args = args;
+
+        if (args.Length > 0 && File.Exists(args[0]))
+            args[0] = Path.Combine(Environment.CurrentDirectory, args[0]);
+
         Dictionary<string, HashSet<string>> housemates = [];
         // address -> (Location, List<voterID>)
         Dictionary<string, Household> households = [];
+        Dictionary<string, List<string>> turfs = [];
         // voterID -> Voter
         Dictionary<string, Voter> voters = [];
         HashSet<string> priorityVoters = [];
 
-        var gitFolder = new DirectoryInfo(LibGit2Sharp.Repository.Discover(Environment.CurrentDirectory)).Parent!.FullName;
-        Directory.SetCurrentDirectory(Path.Combine(Path.GetDirectoryName(gitFolder)!, "VoterMate\\VoterMate\\Database"));
+        var dotGitFolder = LibGit2Sharp.Repository.Discover(Environment.CurrentDirectory);
+        var rootFolder = dotGitFolder == null ? "." : new DirectoryInfo(dotGitFolder).Parent!.FullName;
 
-        ReadExcel(housemates, households, voters, priorityVoters);
-        WriteTsv(housemates, households, voters, priorityVoters);
-        File.WriteAllText("voterDataDate.tsv", GetBuildInfo() ?? "Voter data date/time unknown");
+        if (ReadExcel(housemates, households, voters, turfs, priorityVoters) && dotGitFolder != null)
+        {
+            Directory.SetCurrentDirectory(Path.Combine(rootFolder, "VoterMate\\Database"));
+            WriteTsv(housemates, households, voters, priorityVoters);
+            File.WriteAllText("voterDataDate.tsv", GetBuildInfo() ?? "Voter data date/time unknown");
+        }
+
+        Directory.CreateDirectory(Path.Combine(rootFolder, "Turf Files"));
+        Directory.SetCurrentDirectory(Path.Combine(rootFolder, "Turf Files"));
+        WriteTurfs(turfs);
     }
 
     public static string? GetBuildInfo()
@@ -43,18 +58,27 @@ internal static partial class Program
     }
 
 
-    private static void ReadExcel(Dictionary<string, HashSet<string>> housemates, Dictionary<string, Household> households, Dictionary<string, Voter> voters, HashSet<string> priorityVoters)
+    private static bool ReadExcel(Dictionary<string, HashSet<string>> housemates, Dictionary<string, Household> households, Dictionary<string, Voter> voters, Dictionary<string, List<string>> turfs, HashSet<string> priorityVoters)
     {
+        bool result = true;
         HashSet<string> mobilizers = [];
 
         ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-        using Stream? stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("VoterMate.BuildDatabase.schema.xlsx");
+        Stream? stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("VoterMate.BuildDatabase.schema.xlsx");
+
+        if (args.Length > 0 && File.Exists(args[0]))
+        {
+            stream?.Dispose();
+            stream = File.Open(args[0], FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            result = false;
+        }
 
         if (stream == null)
         {
             Console.Error.WriteLine("ERROR: Please download the latest voter database (schema.xlsx) and place it in the VoterMate.BuildDatabase project folder before building.");
             Environment.Exit(-1);
         }
+        using var _1 = stream;
         using var workbook = new ExcelPackage(stream).Workbook;
 
         // Slurp the data out of the Excel file and into intermediate maps.
@@ -80,6 +104,11 @@ internal static partial class Program
                 household = households[address] = new(address, location, []);
             }
             household.Mobilizers.Add(new(id, string.Empty, null));
+
+            string turfID = mobilizerDB.Cells[i, 8].Value.ToString()!;
+            if (!turfs.TryGetValue(turfID, out var turf))
+                turf = turfs[turfID] = [];
+            turf.Add(address);
         }
 
         var voterDB = workbook.Worksheets["voterDB"];
@@ -107,6 +136,8 @@ internal static partial class Program
             housemates2.Add(housemate1);
         }
 
+        return result;
+
         static string GetName(ExcelWorksheet sheet, int i) => NameFilter().Match(sheet.Cells[i, 2].Value.ToString()!).Groups[1].Value;
     }
 
@@ -130,7 +161,20 @@ internal static partial class Program
                 priorityVotersStream.WriteLine(voter);
     }
 
-
+    private static void WriteTurfs(Dictionary<string, List<string>> turfs)
+    {
+        foreach (var (id, turf) in turfs)
+        {
+            try
+            {
+                File.WriteAllLines(id + ".txt", [.. turf]);
+            }
+            catch (IOException)
+            {
+                Console.WriteLine($"ERROR: Could not create turf file for turf ID '{id}'.");
+            }
+        }
+    }
 
     [GeneratedRegex(@"^([^[]*?)\s+\[")]
     private static partial Regex NameFilter();
