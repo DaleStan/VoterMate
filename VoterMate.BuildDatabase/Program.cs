@@ -118,7 +118,7 @@ internal static partial class Program
             string id = voterDB.Cells[i, 1].Value.ToString()!;
             _ = DateTime.TryParse(voterDB.Cells[i, 8].Value.ToString(), out var birthDate);
             Location location = new(Convert.ToDouble(voterDB.Cells[i, 4].Value), Convert.ToDouble(voterDB.Cells[i, 5].Value));
-            voters[id] = new Voter(id, GetName(voterDB, i), voterDB.Cells[i, 2].Value.ToString()!.Trim(), location, birthDate);
+            voters[id] = new Voter(id, GetName(voterDB, i), voterDB.Cells[i, 2].Value.ToString()!.Trim(), location, birthDate, voterDB.Cells[i, 3].Value.ToString()!.Trim());
         }
 
         var housemateDB = workbook.Worksheets["households"];
@@ -147,10 +147,6 @@ internal static partial class Program
             foreach (var (key, value) in housemates)
                 if (value.Count > 0)
                     housematesSteam.WriteLine(key + "\t" + string.Join('\t', value));
-
-        using (StreamWriter householdsStream = new("households.tsv") { NewLine = "\n" })
-            foreach (var household in households.Values)
-                household.SaveTo(householdsStream);
 
         using (StreamWriter votersStream = new("voters.tsv") { NewLine = "\n" })
             foreach (var voter in voters.Values)

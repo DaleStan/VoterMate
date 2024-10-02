@@ -27,6 +27,12 @@ public partial class MainPage : ContentPage
             Canvasser = File.ReadAllText(Path.Combine(FileSystem.Current.AppDataDirectory, "canvasser.txt"));
         }
         catch { Canvasser = null!; }
+
+        try
+        {
+            App.Database.LoadTurfList(Path.Combine(FileSystem.Current.AppDataDirectory, "turf.txt"));
+        }
+        catch { }
     }
 
     public static string? GetBuildInfo()
@@ -133,24 +139,40 @@ public partial class MainPage : ContentPage
     {
         LogEvent("Moving", null, e.Location);
 
-        double squareFilterLongitude = locationFilterRange / 1.609 / MilesPerDegree;
-        double squareFilterLatitude = locationFilterRange / 1.609 / MilesPerDegree / Math.Cos(e.Location.Longitude);
+        LocationChanged(e.Location);
+    }
 
-        var households = App.Database.GetHouseholds()
+    private void LocationChanged(Location location)
+    {
+        double squareFilterLongitude = locationFilterRange / 1.609 / MilesPerDegree;
+        double squareFilterLatitude = locationFilterRange / 1.609 / MilesPerDegree / Math.Cos(location.Longitude);
+
+        var households = App.Database.GetHouseholds().ToList();
+
+        if (households.Count == 0)
+        {
+            if (Navigation.NavigationStack.Count == 1)
+            {
+                Navigation.PushAsync(new SettingsPage(this));
+            }
+            return;
+        }
+
+        households = households
             .Where(SquareFilter) // Premature optimization? Filter to a square before doing accurate distance calculations.
             .OrderBy(DistanceTo)
             .TakeWhile(h => DistanceTo(h) < locationFilterRange)
             .ToList();
 
-        Dispatcher.Dispatch(() => SetHousehold(e.Location, households));
+        Dispatcher.Dispatch(() => SetHousehold(location, households));
 
         bool SquareFilter(Household h)
         {
-            return Math.Abs(h.Location.Latitude - e.Location.Latitude) < squareFilterLatitude
-                && Math.Abs(h.Location.Longitude - e.Location.Longitude) < squareFilterLongitude;
+            return Math.Abs(h.Location.Latitude - location.Latitude) < squareFilterLatitude
+                && Math.Abs(h.Location.Longitude - location.Longitude) < squareFilterLongitude;
         }
 
-        double DistanceTo(Household h) => h.Location.CalculateDistance(e.Location, DistanceUnits.Kilometers);
+        double DistanceTo(Household h) => h.Location.CalculateDistance(location, DistanceUnits.Kilometers);
     }
 
     private async void MainPage_Loaded(object sender, EventArgs e)
@@ -275,6 +297,9 @@ public partial class MainPage : ContentPage
         }
 
         File.WriteAllText(Path.Combine(FileSystem.Current.AppDataDirectory, "canvasser.txt"), Canvasser);
+
+        if (_location != null)
+            LocationChanged(_location);
     }
 
     private static readonly CsvConfiguration _csvConfiguration = new(CultureInfo.InvariantCulture) { HasHeaderRecord = false };

@@ -7,5 +7,6 @@
     <VerticalStackLayout>
         <Label Text="Canvasser Name/ID" Margin="3"/>
         <Entry x:Name="txtCanvasserName" Margin="10,3,3,3"/>
+        <Button Text="Load Turf" Margin="3" Clicked="LoadTurf_Clicked"/>
     </VerticalStackLayout>
 </ContentPage>

@@ -10,6 +10,7 @@ internal class TsvDatabase : IDatabase
     private readonly Dictionary<string, Household> _households = [];
     // voterID -> Voter
     private readonly Dictionary<string, Voter> _voters = [];
+    private readonly Dictionary<string, List<Voter>> _voterAddresses = [];
     private readonly HashSet<Voter> _priorityVoters = [];
     private readonly Dictionary<string, HashSet<string>> _friendsShown = [];
 
@@ -24,11 +25,12 @@ internal class TsvDatabase : IDatabase
 
         using (StreamReader sr = new(typeof(TsvDatabase).Assembly.GetManifestResourceStream("VoterMate.Database.voters.tsv")!))
             while (Voter.LoadFrom(sr) is Voter voter)
+            {
                 _voters[voter.ID] = voter;
-
-        using (StreamReader sr = new(typeof(TsvDatabase).Assembly.GetManifestResourceStream("VoterMate.Database.households.tsv")!))
-            while (Household.LoadFrom(sr, _voters) is Household household)
-                _households[household.Address] = household;
+                if (!_voterAddresses.TryGetValue(voter.Address, out var household))
+                    _voterAddresses[voter.Address] = household = [];
+                household.Add(voter);
+            }
 
         using (StreamReader sr = new(typeof(TsvDatabase).Assembly.GetManifestResourceStream("VoterMate.Database.priorityVoters.tsv")!))
             while (sr.ReadLine() is string line)
@@ -37,6 +39,14 @@ internal class TsvDatabase : IDatabase
         File.OpenWrite(Path.Combine(FileSystem.Current.AppDataDirectory, "friendsShown.csv")).Close();
         using (StreamReader sr = new(Path.Combine(FileSystem.Current.AppDataDirectory, "friendsShown.csv")))
             LoadShownFriends(sr);
+    }
+
+    public void LoadTurfList(string path)
+    {
+        _households.Clear();
+        using StreamReader sr = new(path);
+        while (Household.LoadFrom(sr, _voterAddresses) is Household household)
+            _households[household.Address] = household;
     }
 
     public IEnumerable<Household> GetHouseholds() => _households.Values;
