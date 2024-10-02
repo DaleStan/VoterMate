@@ -1,10 +1,13 @@
-﻿using VoterMate.Database;
+﻿using CsvHelper;
+using System.Globalization;
+using VoterMate.Database;
 
 namespace VoterMate;
 
 public partial class MobilizerPage : ContentPage
 {
     private readonly Mobilizer _mobilizer;
+    private readonly MainPage _mainPage;
     private readonly Location _location;
     private readonly IReadOnlyCollection<Voter> _voters;
     private readonly List<Voter> _fetchedVoters = [];
@@ -12,7 +15,7 @@ public partial class MobilizerPage : ContentPage
 
     public Mobilizer Mobilizer => _mobilizer;
 
-    public MobilizerPage(Location location, Mobilizer? mobilizer)
+    public MobilizerPage(Location location, Mobilizer? mobilizer, MainPage page)
     {
         InitializeComponent();
 
@@ -27,7 +30,7 @@ public partial class MobilizerPage : ContentPage
             btnEdit.IconImageSource = null;
 
         _mobilizer = mobilizer ?? new Mobilizer(null, string.Empty, null);
-
+        _mainPage = page;
         _voters = App.Database.GetVoters(location, _mobilizer);
         for (int i = 0; i < 101; i++)
             dgVoters.RowDefinitions.Add(new(GridLength.Auto));
@@ -97,26 +100,25 @@ public partial class MobilizerPage : ContentPage
 
     public void Save()
     {
-        MainPage.LogEvent("Closing mobilizer page (Note: Reports household location)", Mobilizer.ID, _location);
+        _mainPage.LogEvent("Closing mobilizer page (Note: Reports household location)", Mobilizer.ID, _location);
 
         string name = Mobilizer.Name;
         if (string.IsNullOrEmpty(name))
             name = "<No name entered>";
-        else
-            name = '"' + name.Replace("\"", "\"\"") + '"';
 
-        using StreamWriter sw = new(Path.Combine(FileSystem.Current.AppDataDirectory, "contactCommitments.csv"), true) { NewLine = "\n" };
-        foreach (var voter in _fetchedVoters.Where(v => v.WillContact))
-        {
-            voter.WillContact = false;
-            sw.WriteLine($"{_mobilizer.ID ?? name},{voter.ID},{DateTime.Now:MMM dd HH:mm:ss},{_location.Latitude:0.####},{_location.Longitude:0.####}");
-        }
+        using (CsvWriter csv = new(new StreamWriter(Path.Combine(FileSystem.Current.AppDataDirectory, "contactCommitments_v2.csv"), true), CultureInfo.InvariantCulture))
+            foreach (var voter in _fetchedVoters.Where(v => v.WillContact))
+            {
+                voter.WillContact = false;
+                csv.WriteRecord(new ContactCommitment(_mainPage.Canvasser, _mobilizer.ID ?? name, voter.ID, _location.Latitude, _location.Longitude));
+                csv.NextRecord();
+            }
 
         if (!string.IsNullOrEmpty(_mobilizer.Phone) || Mobilizer.NameChanged)
         {
             string? newName = Mobilizer.NameChanged ? name : null;
-            string line = $"{_mobilizer.ID ?? name},{_mobilizer.Phone},{DateTime.Now:MMM dd HH:mm:ss},{_location.Latitude:0.####},{_location.Longitude:0.####},{newName}";
-            File.AppendAllLines(Path.Combine(FileSystem.Current.AppDataDirectory, "phoneNumbers.csv"), [line]);
+            using CsvWriter csv = new(new StreamWriter(Path.Combine(FileSystem.Current.AppDataDirectory, "phoneNumbers.csv"), true), CultureInfo.InvariantCulture);
+            csv.WriteRecord(new PhoneNumber(_mainPage.Canvasser, _mobilizer.ID ?? name, _mobilizer.Phone, _location.Latitude, _location.Longitude, newName));
         }
 
         App.Database.SaveShownFriends();

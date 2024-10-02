@@ -5,6 +5,9 @@
              Loaded="MainPage_Loaded"
              Title="VoterMate"
             >
+    <ContentPage.ToolbarItems>
+        <ToolbarItem IconImageSource="settings.png" Clicked="Settings_Clicked"/>
+    </ContentPage.ToolbarItems>
     <ScrollView>
         <StackLayout>
             <StackLayout x:Name="namesPanel"/>
@@ -20,6 +23,7 @@
                 <Entry x:Name="txtVoterID" MinimumWidthRequest="125" Grid.Column="1" Margin="0,3,3,3" Completed="Lookup_Clicked" Keyboard="Numeric"/>
                 <Button Text="Look up this mobilizer" Clicked="Lookup_Clicked" Margin="3" Grid.Column="2"/>
             </Grid>
+            <Label Text="Gear icon by INA from The Noun Project" FontSize="Micro" Margin="3"/>
             <Grid Opacity="0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>

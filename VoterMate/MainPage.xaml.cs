@@ -1,4 +1,7 @@
 ﻿using CommunityToolkit.Maui.Views;
+using CsvHelper.Configuration;
+using CsvHelper;
+using System.Globalization;
 using System.Reflection;
 using VoterMate.Database;
 
@@ -10,6 +13,7 @@ public partial class MainPage : ContentPage
     private const double MilesPerDegree = 69;
     private readonly Dictionary<Household, Expander> expanders = [];
     private Location? _location;
+    internal string Canvasser { get; private set; }
 
     const double locationFilterRange = 0.1; // 100 m
 
@@ -18,6 +22,12 @@ public partial class MainPage : ContentPage
         InitializeComponent();
         using StreamReader sr = new(typeof(TsvDatabase).Assembly.GetManifestResourceStream("VoterMate.Database.voterDataDate.tsv")!);
         lblBuildInfo.Text = GetBuildInfo() + "\n" + sr.ReadToEnd();
+
+        try
+        {
+            Canvasser = File.ReadAllText(Path.Combine(FileSystem.Current.AppDataDirectory, "canvasser.txt"));
+        }
+        catch { Canvasser = null!; }
     }
 
     public static string? GetBuildInfo()
@@ -91,7 +101,7 @@ public partial class MainPage : ContentPage
                     void Clicked(object? sender, EventArgs e)
                     {
                         LogEvent("Opening mobilizer page (selected)", mobilizer.ID, location);
-                        (sender as Button)!.Navigation.PushAsync(new MobilizerPage(household.Location, mobilizer));
+                        (sender as Button)!.Navigation.PushAsync(new MobilizerPage(household.Location, mobilizer, this));
                     }
                 }
             }
@@ -138,6 +148,9 @@ public partial class MainPage : ContentPage
         Window.Deactivated += Window_Deactivated;
 
         LogEvent("Started", null, _location ?? await Geolocation.GetLastKnownLocationAsync());
+
+        if (Canvasser == null)
+            await Navigation.PushAsync(new SettingsPage(this));
     }
 
     private async void Window_Deactivated(object? sender, EventArgs e) => LogEvent("Deactivated", null, _location ?? await Geolocation.GetLastKnownLocationAsync());
@@ -154,7 +167,7 @@ public partial class MainPage : ContentPage
         if (_location != null)
         {
             LogEvent("Opening mobilizer page (not listed)", null, _location);
-            Navigation.PushAsync(new MobilizerPage(_location, null));
+            Navigation.PushAsync(new MobilizerPage(_location, null, this));
         }
         else
             DisplayAlert("Unknown location", $"Friend lists cannot be displayed without a voter ID or location information.", "OK");
@@ -172,7 +185,7 @@ public partial class MainPage : ContentPage
         var (mobilizer, location) = info.Value;
         LogEvent("Opening mobilizer page (ID lookup)", mobilizer.ID, _location);
         await txtVoterID.HideSoftInputAsync(new CancellationTokenSource().Token);
-        await Navigation.PushAsync(new MobilizerPage(location, mobilizer));
+        await Navigation.PushAsync(new MobilizerPage(location, mobilizer, this));
     }
 
     private async void Copy_Clicked(object? sender, EventArgs e)
@@ -219,16 +232,107 @@ public partial class MainPage : ContentPage
             await MobilizerPage.LoadShownFriendsData(file);
     }
 
-    internal static void LogEvent(string @event, string? data, Location? location)
+    internal void LogEvent(string @event, string? data, Location? location)
     {
-        string line;
-        if (location == null)
-            line = $"{@event},{data},{DateTime.Now:MM/dd HH:mm:ss},,Unknown,Unknown";
-        else if (location.Speed == null)
-            line = $"{@event},{data},{DateTime.Now:MM/dd HH:mm:ss},,{location.Latitude:0.####},{location.Longitude:0.####}";
-        else
-            line = $"{@event},{data},{DateTime.Now:MM/dd HH:mm:ss},{location.Speed:0.##m/s},{location.Latitude:0.####},{location.Longitude:0.####}";
+        TravelLog line = new(Canvasser, @event, data, location?.Speed, location?.Latitude, location?.Longitude);
 
-        File.AppendAllLines(Path.Combine(FileSystem.Current.AppDataDirectory, "travelLog.csv"), [line]);
+        using CsvWriter csv = new(new StreamWriter(Path.Combine(FileSystem.Current.AppDataDirectory, "travelLog_v2.csv"), true), CultureInfo.InvariantCulture);
+        csv.WriteRecord(line);
+        csv.NextRecord();
+    }
+
+    private void Settings_Clicked(object sender, EventArgs e) => Navigation.PushAsync(new SettingsPage(this));
+
+    internal void UpdateSettings(string canvasser)
+    {
+        Canvasser = canvasser;
+        foreach (var path in Directory.GetFiles(FileSystem.Current.AppDataDirectory, "*.csv"))
+        {
+            switch (Path.GetFileNameWithoutExtension(path))
+            {
+                case "travelLog":
+                    UpdateTravelLog();
+                    break;
+                case "contactCommitments":
+                    UpdateContactCommitments();
+                    break;
+                case "phoneNumbers":
+                    UpdatePhoneNumbers();
+                    break;
+            }
+        }
+
+        File.WriteAllText(Path.Combine(FileSystem.Current.AppDataDirectory, "canvasser.txt"), Canvasser);
+    }
+
+    private void UpdateTravelLog()
+    {
+        string oldLogPath = Path.Combine(FileSystem.Current.AppDataDirectory, "travelLog.csv");
+        string newLogPath = Path.Combine(FileSystem.Current.AppDataDirectory, "travelLog_v2.csv");
+
+        using CsvWriter csv = new(new StreamWriter(newLogPath), CultureInfo.InvariantCulture);
+        csv.WriteRecords(ReadOldRecords());
+
+        File.Delete(oldLogPath);
+
+        IEnumerable<TravelLog> ReadOldRecords()
+        {
+            using CsvDataReader dr = new(new(new StreamReader(oldLogPath), new CsvConfiguration(CultureInfo.InvariantCulture) { HasHeaderRecord = false }));
+            while (dr.Read())
+            {
+                int count = dr.FieldCount;
+                string[] values = new string[count];
+                dr.GetValues(values);
+                yield return new TravelLog(Canvasser, values[0], values[1], values[2], values[3], values[4], values[5]);
+            }
+        }
+    }
+
+    private void UpdateContactCommitments()
+    {
+        string oldCommitmentsPath = Path.Combine(FileSystem.Current.AppDataDirectory, "contactCommitments.csv");
+        string newCommitmentsPath = Path.Combine(FileSystem.Current.AppDataDirectory, "contactCommitments_v2.csv");
+
+        using CsvWriter csv = new(new StreamWriter(newCommitmentsPath), CultureInfo.InvariantCulture);
+        csv.WriteRecords(ReadOldRecords());
+
+        File.Delete(oldCommitmentsPath);
+
+        IEnumerable<object> ReadOldRecords()
+        {
+            using CsvDataReader dr = new(new CsvReader(new StreamReader(oldCommitmentsPath), new CsvConfiguration(CultureInfo.InvariantCulture) { HasHeaderRecord = false }));
+            while (dr.Read())
+            {
+                int count = dr.FieldCount;
+                string[] values = new string[count];
+                dr.GetValues(values);
+                if (DateTime.TryParseExact(values[2], "MMM dd HH:mm:ss", null, DateTimeStyles.None, out DateTime result))
+                    values[2] = result.ToString("MM/dd HH:mm:ss");
+                yield return new ContactCommitment(Canvasser, values[0], values[1], values[2], values[3], values[4]);
+            }
+        }
+    }
+
+    private void UpdatePhoneNumbers()
+    {
+        string oldPhonePath = Path.Combine(FileSystem.Current.AppDataDirectory, "phoneNumbers.csv");
+        string newPhonePath = Path.Combine(FileSystem.Current.AppDataDirectory, "phoneNumbers_v2.csv");
+
+        using CsvWriter csv = new(new StreamWriter(newPhonePath), CultureInfo.InvariantCulture);
+        csv.WriteRecords(ReadOldRecords());
+
+        File.Delete(oldPhonePath);
+
+        IEnumerable<object> ReadOldRecords()
+        {
+            using CsvDataReader dr = new(new CsvReader(new StreamReader(oldPhonePath), new CsvConfiguration(CultureInfo.InvariantCulture) { HasHeaderRecord = false }));
+            while (dr.Read())
+            {
+                int count = dr.FieldCount;
+                string[] values = new string[count];
+                dr.GetValues(values);
+                yield return new PhoneNumber(Canvasser, values[0], values[1], values[2], values[3], values[4], values[5]);
+            }
+        }
     }
 }

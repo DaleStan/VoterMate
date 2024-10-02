@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="VoterMate.SettingsPage"
+             Title="Settings"
+             NavigatingFrom="SettingsPage_NavigatingFrom">
+    <VerticalStackLayout>
+        <Label Text="Canvasser Name/ID" Margin="3"/>
+        <Entry x:Name="txtCanvasserName" Margin="10,3,3,3"/>
+    </VerticalStackLayout>
+</ContentPage>
