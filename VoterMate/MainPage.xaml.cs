@@ -299,7 +299,14 @@ public partial class MainPage : ContentPage
     }
 
     internal void LogEvent(string @event, string? data, Location? location)
-        => App.TravelLog.Append(new TravelLog(Canvasser, @event, data, location?.Speed, location?.Latitude, location?.Longitude));
+    {
+        if (Dispatcher.IsDispatchRequired)
+            Dispatcher.Dispatch(@internal);
+        else
+            @internal();
+
+        void @internal() => App.TravelLog.Append(new TravelLog(Canvasser, @event, data, location?.Speed, location?.Latitude, location?.Longitude));
+    }
 
     private void Settings_Clicked(object sender, EventArgs e) => Navigation.PushAsync(new SettingsPage(this));
 
