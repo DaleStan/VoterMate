@@ -400,5 +400,5 @@ FodyWeavers.xsd
 
 /VoterMate/Database/*.tsv
 /VoterMate.BuildDatabase/schema.xlsx
-/Turf Files
+/VoterMate/TurfFiles
 **/Properties/launchSettings.json

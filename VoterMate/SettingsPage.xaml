@@ -1,12 +1,15 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:sf="clr-namespace:Syncfusion.Maui.Inputs;assembly=Syncfusion.Maui.Inputs"
              x:Class="VoterMate.SettingsPage"
              Title="Settings"
              NavigatingFrom="SettingsPage_NavigatingFrom">
     <VerticalStackLayout>
         <Label Text="Canvasser Name/ID" Margin="3"/>
         <Entry x:Name="txtCanvasserName" Margin="10,3,3,3"/>
-        <Button Text="Load Turf" Margin="3" Clicked="LoadTurf_Clicked"/>
+        <sf:SfComboBox x:Name="cboTurf" Margin="3" TextSearchMode="Contains" IsEditable="True" SelectionChanged="cboTurf_SelectionChanged"/>
+        <Button Text="Load external turf file" Margin="3" Clicked="LoadTurf_Clicked"/>
+        <Label Text="Turf data loaded successfully" IsVisible="False" x:Name="txtSuccess" Margin="3" FontSize="Medium"/>
     </VerticalStackLayout>
 </ContentPage>

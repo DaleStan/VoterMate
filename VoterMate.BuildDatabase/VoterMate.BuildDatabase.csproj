@@ -18,6 +18,7 @@
 	</ItemGroup>
 
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
+		<Exec Command="del ..\VoterMate\TurfFiles /q" />
 		<Exec Command="dotnet $(OutputPath)/VoterMate.BuildDatabase.dll" />
 	</Target>
 

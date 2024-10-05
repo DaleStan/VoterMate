@@ -33,8 +33,8 @@ internal static partial class Program
             File.WriteAllText("voterDataDate.tsv", GetBuildInfo() ?? "Voter data date/time unknown");
         }
 
-        Directory.CreateDirectory(Path.Combine(rootFolder, "Turf Files"));
-        Directory.SetCurrentDirectory(Path.Combine(rootFolder, "Turf Files"));
+        Directory.CreateDirectory(Path.Combine(rootFolder, "VoterMate\\TurfFiles"));
+        Directory.SetCurrentDirectory(Path.Combine(rootFolder, "VoterMate\\TurfFiles"));
         WriteTurfs(turfs);
     }
 
