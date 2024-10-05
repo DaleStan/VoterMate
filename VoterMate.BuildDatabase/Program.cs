@@ -105,7 +105,7 @@ internal static partial class Program
             }
             household.Mobilizers.Add(new(id, string.Empty, null));
 
-            string turfID = mobilizerDB.Cells[i, 8].Value.ToString()!;
+            string turfID = mobilizerDB.Cells[i, 8].Value?.ToString() ?? "";
             if (!turfs.TryGetValue(turfID, out var turf))
                 turf = turfs[turfID] = [];
             turf.Add(address);
