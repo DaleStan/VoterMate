@@ -4,6 +4,8 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using VoterMate.Database;
 
+namespace VoterMate.BuildDatabase;
+
 internal static partial class Program
 {
     private static string[] args = null!;
@@ -35,6 +37,7 @@ internal static partial class Program
 
         Directory.CreateDirectory(Path.Combine(rootFolder, "VoterMate\\TurfFiles"));
         Directory.SetCurrentDirectory(Path.Combine(rootFolder, "VoterMate\\TurfFiles"));
+        SortTurfs(households, turfs);
         WriteTurfs(turfs);
     }
 
