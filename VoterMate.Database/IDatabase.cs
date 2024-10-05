@@ -17,11 +17,9 @@ public record Household(string Address, Location Location, List<Mobilizer> Mobil
 {
     public static Household? LoadFrom(StreamReader stream, Dictionary<string, List<Voter>> voters)
     {
-        if (stream.ReadLine() is string line)
-        {
-            var mobilizers = voters[line];
-            return new(line, mobilizers[0].Location, [.. mobilizers.Select(v => new Mobilizer(v.ID, v.Name, v.BirthDate))]);
-        }
+        while (stream.ReadLine() is string line)
+            if (voters.TryGetValue(line, out var mobilizers))
+                return new(line, mobilizers[0].Location, [.. mobilizers.Select(v => new Mobilizer(v.ID, v.Name, v.BirthDate))]);
         return null;
     }
 }
