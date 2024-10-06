@@ -1,15 +1,73 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:tk="clr-namespace:CommunityToolkit.Maui.Views;assembly=CommunityToolkit.Maui"
              x:Class="VoterMate.MainPage"
              Loaded="MainPage_Loaded"
              Title="VoterMate"
+             BindingContext="{Binding Source={RelativeSource Self}}"
             >
     <ContentPage.ToolbarItems>
         <ToolbarItem IconImageSource="settings.png" Clicked="Settings_Clicked"/>
     </ContentPage.ToolbarItems>
     <ScrollView>
         <StackLayout>
+            <tk:Expander>
+                <tk:Expander.Header>
+                    <Button Text="Describe display settings here" BackgroundColor="MediumAquamarine" Margin="3" TextColor="Black" x:Name="btnDisplay" >
+                        <Button.Triggers>
+                            <DataTrigger TargetType="{Type Button}" Binding="{Binding Source={RelativeSource AncestorType={Type tk:Expander}}, Path=IsExpanded}" Value="True">
+                                <Setter Property="Button.Text" Value="Display settings"/>
+                            </DataTrigger>
+                        </Button.Triggers>
+                    </Button>
+                </tk:Expander.Header>
+                <tk:Expander.Content>
+                    <Grid HorizontalOptions="Fill" Margin="3">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition/>
+                            <ColumnDefinition/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition/>
+                            <RowDefinition/>
+                            <RowDefinition/>
+                            <RowDefinition/>
+                            <RowDefinition/>
+                        </Grid.RowDefinitions>
+
+                        <Label Text="Hide distant houses" Grid.Row="0" VerticalTextAlignment="Center" FontSize="Medium"/>
+                        <Switch x:Name="chkHideDistant" Grid.Row="0" Grid.Column="2" IsToggled="{Binding HideDistantHouses}" HorizontalOptions="End"/>
+
+                        <Label Text="Show house numbers:" Margin="3" Grid.Row="1" Grid.ColumnSpan="2" VerticalTextAlignment="Center" HorizontalTextAlignment="Center" FontSize="Medium"/>
+                        <Grid RadioButtonGroup.GroupName="grpNumberFilter" RadioButtonGroup.SelectedValue="{Binding SelectedFilter}" Grid.Row="2" Grid.ColumnSpan="2" HorizontalOptions="Center">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <RadioButton Content="Even" Grid.Row="2" Grid.Column="0" FontSize="Medium" Value="1" HorizontalOptions="Start"/>
+                            <RadioButton Content="Odd" Grid.Row="2" Grid.Column="1" FontSize="Medium" Value="2" HorizontalOptions="Start"/>
+                            <RadioButton Content="Both" Grid.Row="2" Grid.Column="2" FontSize="Medium" Value="3" HorizontalOptions="Start" IsChecked="True"/>
+                        </Grid>
+                        <Label Text="Sort by:" Margin="3" Grid.Row="3" Grid.ColumnSpan="2" VerticalTextAlignment="Center" HorizontalTextAlignment="Center" FontSize="Medium"/>
+                        <Grid RadioButtonGroup.GroupName="grpSelectedSort" RadioButtonGroup.SelectedValue="{Binding SelectedSort}" Grid.Row="4" Grid.ColumnSpan="2" HorizontalOptions="Center">
+                            <Grid.RowDefinitions>
+                                <RowDefinition/>
+                                <RowDefinition/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <RadioButton Content="Distance" Grid.Row="0" Grid.Column="0" FontSize="Medium" Value="0" HorizontalOptions="Start" IsChecked="True"/>
+                            <RadioButton Content="Address" Grid.Row="0" Grid.Column="1" FontSize="Medium" Value="3" HorizontalOptions="Start"/>
+                            <RadioButton Content="Walk order" Grid.Row="1" Grid.Column="0" FontSize="Medium" Value="1" HorizontalOptions="Start"/>
+                            <RadioButton Content="Reverse walk" Grid.Row="1" Grid.Column="1" FontSize="Medium" Value="2" HorizontalOptions="Start"/>
+                        </Grid>
+                    </Grid>
+                </tk:Expander.Content>
+            </tk:Expander>
             <StackLayout x:Name="namesPanel"/>
             <Button Text="Mobilizer not listed" Margin="3" Clicked="NotListed_Clicked"/>
             <Border Margin="5" HorizontalOptions="FillAndExpand" Stroke="Gray" StrokeThickness="2"/>

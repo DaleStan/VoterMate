@@ -3,6 +3,8 @@ using CsvHelper;
 using CsvHelper.Configuration;
 using System.Globalization;
 using System.Reflection;
+using System.Text;
+using System.Text.RegularExpressions;
 using VoterMate.Database;
 
 namespace VoterMate;
@@ -12,15 +14,53 @@ public partial class MainPage : ContentPage
     // Approximate distance in miles between degrees of longitude at equator, or between degrees of latitude. Actual value ranges apparently ranges from 68.7 to 69.4.
     private const double MilesPerDegree = 69;
     private Location? _location;
+    private bool hideDistantHouses = true;
+    private int selectedSort;
+    private int selectedFilter = 3;
+
     internal string Canvasser { get; private set; }
 
     private const double locationFilterRange = 0.1; // 100 m
+
+    public bool HideDistantHouses
+    {
+        get => hideDistantHouses;
+        set
+        {
+            if (hideDistantHouses != value)
+            {
+                hideDistantHouses = value;
+                SetDisplayDescription();
+            }
+        }
+    }
+
+    public int SelectedSort
+    {
+        get => selectedSort;
+        set
+        {
+            selectedSort = value;
+            SetDisplayDescription();
+        }
+    }
+
+    public int SelectedFilter
+    {
+        get => selectedFilter;
+        set
+        {
+            selectedFilter = value;
+            SetDisplayDescription();
+        }
+    }
 
     public MainPage()
     {
         InitializeComponent();
         using StreamReader sr = new(typeof(TsvDatabase).Assembly.GetManifestResourceStream("VoterMate.Database.voterDataDate.tsv")!);
         lblBuildInfo.Text = GetBuildInfo() + "\n" + sr.ReadToEnd();
+        SetDisplayDescription();
 
         try
         {
@@ -54,7 +94,7 @@ public partial class MainPage : ContentPage
         return default;
     }
 
-    private async void SetHousehold(Location location, List<Household> households)
+    private async void SetHousehold(Location location, IReadOnlyList<Household> households)
     {
         if (Navigation.NavigationStack[^1] is MobilizerPage mp)
         {
@@ -85,7 +125,7 @@ public partial class MainPage : ContentPage
             HorizontalTextAlignment = TextAlignment.Center
         });
 
-        foreach (var household in households)
+        foreach (var household in households.Take(15))
         {
             Expander expander = new()
             {
@@ -168,37 +208,109 @@ public partial class MainPage : ContentPage
         LocationChanged(e.Location);
     }
 
-    private void LocationChanged(Location location)
+    private async void LocationChanged(Location location)
     {
         double squareFilterLongitude = locationFilterRange / 1.609 / MilesPerDegree;
         double squareFilterLatitude = locationFilterRange / 1.609 / MilesPerDegree / Math.Cos(location.Longitude);
 
-        var households = App.Database.GetHouseholds().ToList();
+        var households = App.Database.GetHouseholds();
 
         if (households.Count == 0)
         {
             if (Navigation.NavigationStack.Count == 1)
             {
-                Navigation.PushAsync(new SettingsPage(this));
+                await Navigation.PushAsync(new SettingsPage(this));
             }
             return;
         }
 
         households = households
             .Where(SquareFilter) // Premature optimization? Filter to a square before doing accurate distance calculations.
-            .OrderBy(DistanceTo)
-            .TakeWhile(h => DistanceTo(h) < locationFilterRange)
+            .Where(h => !hideDistantHouses || (DistanceTo(h) < locationFilterRange))
+            .Where(FilterNumber)
             .ToList();
+
+        switch (SelectedSort)
+        {
+            case 0:
+                households = [.. households.OrderBy(DistanceTo)];
+                break;
+            case 2:
+                ((List<Household>)households).Reverse();
+                break;
+            case 3:
+                households = [.. households.OrderBy(AddressKey)];
+                break;
+        }
 
         Dispatcher.Dispatch(() => SetHousehold(location, households));
 
         bool SquareFilter(Household h)
         {
-            return Math.Abs(h.Location.Latitude - location.Latitude) < squareFilterLatitude
-                && Math.Abs(h.Location.Longitude - location.Longitude) < squareFilterLongitude;
+            return !hideDistantHouses || (Math.Abs(h.Location.Latitude - location.Latitude) < squareFilterLatitude
+                && Math.Abs(h.Location.Longitude - location.Longitude) < squareFilterLongitude);
         }
 
         double DistanceTo(Household h) => h.Location.CalculateDistance(location, DistanceUnits.Kilometers);
+
+        bool FilterNumber(Household household)
+        {
+            var parts = household.Address.Split(' ', 2);
+            if (int.TryParse(parts[0], out int number))
+            {
+                return (SelectedFilter & (1 << (number & 1))) != 0;
+            }
+            return true;
+        }
+
+        static string AddressKey(Household household)
+        {
+            var parts = SplitAddress().Match(household.Address);
+            if (parts.Success && int.TryParse(parts.Groups[1].Value, out int number))
+            {
+                return parts.Groups[3].Value + number / 100 + ((number & 1) == 0 ? "E" : "O");
+            }
+
+            return household.Address;
+        }
+    }
+
+    private void SetDisplayDescription()
+    {
+        if (btnDisplay == null) return;
+
+        StringBuilder description = new("Showing up to 15");
+        if (HideDistantHouses)
+            description.Append(" nearby");
+        switch (SelectedFilter)
+        {
+            case 1:
+                description.Append(" even");
+                break;
+            case 2:
+                description.Append(" odd");
+                break;
+        }
+        description.Append(" houses, ");
+        switch (SelectedSort)
+        {
+            case 0:
+                description.Append("closest first");
+                break;
+            case 1:
+                description.Append("in walk order");
+                break;
+            case 2:
+                description.Append("in reverse order");
+                break;
+            case 3:
+                description.Append("by address");
+                break;
+        }
+        btnDisplay.Text = description.ToString();
+
+        if (_location != null)
+            LocationChanged(_location);
     }
 
     private async void MainPage_Loaded(object sender, EventArgs e)
@@ -401,4 +513,7 @@ public partial class MainPage : ContentPage
             }
         }
     }
+
+    [GeneratedRegex(@"(\d+)( 1/2)? ([A-Z0-9 ]{4,}?) ")]
+    private static partial Regex SplitAddress();
 }

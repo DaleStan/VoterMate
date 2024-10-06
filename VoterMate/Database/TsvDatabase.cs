@@ -7,7 +7,7 @@ internal class TsvDatabase : IDatabase
     // voterID -> List<voterID>
     private readonly Dictionary<string, HashSet<string>> _housemates = [];
     // address -> (Location, List<voterID>)
-    private readonly Dictionary<string, Household> _households = [];
+    private readonly List<Household> _households = [];
     // voterID -> Voter
     private readonly Dictionary<string, Voter> _voters = [];
     private readonly Dictionary<string, List<Voter>> _voterAddresses = [];
@@ -44,12 +44,14 @@ internal class TsvDatabase : IDatabase
     public void LoadTurfList(string path)
     {
         _households.Clear();
+        HashSet<string> addresses = [];
         using StreamReader sr = new(path);
         while (Household.LoadFrom(sr, _voterAddresses) is Household household)
-            _households[household.Address] = household;
+            if (addresses.Add(household.Address))
+                _households.Add(household);
     }
 
-    public IEnumerable<Household> GetHouseholds() => _households.Values;
+    public IReadOnlyList<Household> GetHouseholds() => _households.AsReadOnly();
 
     public IReadOnlyCollection<Voter> GetVoters(Location location, Mobilizer mobilizer) => new ReadOnlyCollection(this, location, mobilizer);
 

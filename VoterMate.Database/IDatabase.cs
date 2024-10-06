@@ -5,7 +5,7 @@ namespace VoterMate.Database;
 
 public interface IDatabase
 {
-    IEnumerable<Household> GetHouseholds();
+    IReadOnlyList<Household> GetHouseholds();
     (Mobilizer, Location)? GetMobilizer(string voterID);
     IReadOnlyCollection<Voter> GetVoters(Location location, Mobilizer mobilizer);
     Task LoadShownFriends(FileResult file);
