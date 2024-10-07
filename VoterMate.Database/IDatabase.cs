@@ -56,7 +56,7 @@ public record Voter(string ID, string Name, string NameAgeAddress, Location Loca
         if (stream.ReadLine() is string line)
         {
             var parts = line.Split('\t');
-            return new(parts[0], parts[1], parts[2], new Location(double.Parse(parts[3]), double.Parse(parts[4])), DateTime.ParseExact(parts[5], "yyyyMMdd", null), parts[6]);
+            return new(parts[0], parts[1], parts[2].Replace("] ", "]\n"), new Location(double.Parse(parts[3]), double.Parse(parts[4])), DateTime.ParseExact(parts[5], "yyyyMMdd", null), parts[6]);
         }
         return null;
     }

@@ -54,13 +54,13 @@ public partial class MobilizerPage : ContentPage
             Grid.SetColumnSpan(border, 2);
             dgVoters.Children.Add(border);
 
-            CheckBox checkBox = new() { HorizontalOptions = LayoutOptions.End, VerticalOptions = LayoutOptions.Start };
+            CheckBox checkBox = new() { HorizontalOptions = LayoutOptions.End, VerticalOptions = LayoutOptions.Center, Scale = 1.5 };
             Grid.SetRow(checkBox, i);
             checkBox.CheckedChanged += (s, e) => voter.WillContact = checkBox.IsChecked;
             border.Clicked += (_, _) => checkBox.IsChecked = !checkBox.IsChecked;
             dgVoters.Children.Add(checkBox);
 
-            Label label = new() { Text = voter.NameAgeAddress, Margin = new(3), VerticalOptions = LayoutOptions.Center };
+            Label label = new() { Text = voter.NameAgeAddress, Margin = new(3), VerticalOptions = LayoutOptions.Center, FontSize = (double)new FontSizeConverter().ConvertFromString(null, null, "Medium")! };
             Grid.SetRow(label, i);
             Grid.SetColumn(label, 1);
             dgVoters.Children.Add(label);

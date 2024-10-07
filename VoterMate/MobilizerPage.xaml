@@ -29,7 +29,7 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
                 <Border BackgroundColor="LightGray" Stroke="Black" Grid.ColumnSpan="2"/>
-                <Label Text="I am able to contact:" FontSize="Medium" HorizontalOptions="Center" Grid.ColumnSpan="2" Margin="10"/>
+                <Label Text="I am able to contact:" FontSize="Large" HorizontalOptions="Center" Grid.ColumnSpan="2" Margin="10"/>
             </Grid>
             <Label Text="Your Phone Number:" HorizontalOptions="End" Grid.Row="2" FontSize="Medium" VerticalTextAlignment="Center"/>
             <Entry TextChanged="Phone_TextChanged" MinimumWidthRequest="20" Grid.Row="2" Grid.Column="2" FontSize="Medium" Margin="10" Keyboard="Telephone"/>
