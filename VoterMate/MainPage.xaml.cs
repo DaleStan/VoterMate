@@ -1,6 +1,7 @@
 ﻿using CommunityToolkit.Maui.Views;
 using CsvHelper;
 using CsvHelper.Configuration;
+using System.ComponentModel;
 using System.Globalization;
 using System.Reflection;
 using System.Text;
@@ -9,7 +10,7 @@ using VoterMate.Database;
 
 namespace VoterMate;
 
-public partial class MainPage : ContentPage
+public partial class MainPage : ContentPage, INotifyPropertyChanged
 {
     // Approximate distance in miles between degrees of longitude at equator, or between degrees of latitude. Actual value ranges apparently ranges from 68.7 to 69.4.
     private const double MilesPerDegree = 69;
@@ -30,6 +31,7 @@ public partial class MainPage : ContentPage
             if (hideDistantHouses != value)
             {
                 hideDistantHouses = value;
+                OnPropertyChanged();
                 SetDisplayDescription();
             }
         }
@@ -41,6 +43,7 @@ public partial class MainPage : ContentPage
         set
         {
             selectedSort = value;
+            OnPropertyChanged();
             SetDisplayDescription();
         }
     }
@@ -51,6 +54,7 @@ public partial class MainPage : ContentPage
         set
         {
             selectedFilter = value;
+            OnPropertyChanged();
             SetDisplayDescription();
         }
     }
@@ -277,7 +281,7 @@ public partial class MainPage : ContentPage
 
     private void SetDisplayDescription()
     {
-        if (btnDisplay == null) return;
+        if (lblDisplay == null) return;
 
         StringBuilder description = new("Showing up to 15");
         if (HideDistantHouses)
@@ -301,13 +305,13 @@ public partial class MainPage : ContentPage
                 description.Append("in walk order");
                 break;
             case 2:
-                description.Append("in reverse order");
+                description.Append("in reverse walk order");
                 break;
             case 3:
                 description.Append("by address");
                 break;
         }
-        btnDisplay.Text = description.ToString();
+        lblDisplay.Text = description.ToString();
 
         if (_location != null)
             LocationChanged(_location);
@@ -511,6 +515,65 @@ public partial class MainPage : ContentPage
                 dr.GetValues(values);
                 yield return new PhoneNumber(Canvasser, values[0], values[1], values[2], values[3], values[4], values[5]);
             }
+        }
+    }
+
+    private async void MainPage_SizeChanged(object sender, EventArgs e)
+    {
+        // Wait for the post-expansion render pass to complete, but only if this was triggered by an expander mode change
+        if (((RadioButton)grdNumberFilter[0]).Height == -1 && sender is MainPage) return;
+        while (((RadioButton)grdNumberFilter[0]).Height == -1)
+            await Task.Delay(50);
+
+        // Once the first post-expansion render completes, we no longer need to know about expander state changes
+        if (sender is Expander expander)
+            expander.ExpandedChanged -= MainPage_SizeChanged!;
+
+        double visibleWidth = Width - 6;
+
+        if (grdSelectedSort.Sum(x => ((RadioButton)x).Width) > visibleWidth)
+        {
+            grdSelectedSort.SetRow(grdSelectedSort[2], 1);
+            grdSelectedSort.SetColumn(grdSelectedSort[2], 0);
+            grdSelectedSort.SetRow(grdSelectedSort[3], 1);
+            grdSelectedSort.SetColumn(grdSelectedSort[3], 1);
+
+            double narrowWidth = grdSelectedSort.Skip(2).Sum(x => ((RadioButton)x).Width);
+            double narrowHeight = grdSelectedSort.Take(2).Sum(x => ((RadioButton)x).Height);
+            if (narrowWidth > visibleWidth)
+            {
+                grdSelectedSort.Scale = visibleWidth / narrowWidth;
+                double TranslationX = (visibleWidth - narrowWidth) / 2;
+                double TranslationY = TranslationX * narrowHeight / narrowWidth;
+                grdSelectedSort.Margin = new(TranslationX, TranslationY);
+            }
+            else
+            {
+                grdSelectedSort.Scale = 1;
+                grdSelectedSort.Margin = 0;
+            }
+        }
+        else
+        {
+            grdSelectedSort.SetRow(grdSelectedSort[2], 0);
+            grdSelectedSort.SetColumn(grdSelectedSort[2], 2);
+            grdSelectedSort.SetRow(grdSelectedSort[3], 0);
+            grdSelectedSort.SetColumn(grdSelectedSort[3], 3);
+        }
+
+        double numberWidth = grdNumberFilter.Sum(x => ((RadioButton)x).Width);
+        double numberHeight = ((RadioButton)grdNumberFilter[0]).Height;
+        if (numberWidth > visibleWidth)
+        {
+            grdNumberFilter.Scale = visibleWidth / numberWidth;
+            double TranslationX = (visibleWidth - numberWidth) / 2;
+            double TranslationY = TranslationX * numberHeight / numberWidth;
+            grdNumberFilter.Margin = new(TranslationX, TranslationY);
+        }
+        else
+        {
+            grdNumberFilter.Scale = 1;
+            grdNumberFilter.Margin = 0;
         }
     }
 

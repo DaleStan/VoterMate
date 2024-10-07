@@ -4,6 +4,7 @@
              xmlns:tk="clr-namespace:CommunityToolkit.Maui.Views;assembly=CommunityToolkit.Maui"
              x:Class="VoterMate.MainPage"
              Loaded="MainPage_Loaded"
+             SizeChanged="MainPage_SizeChanged"
              Title="VoterMate"
              BindingContext="{Binding Source={RelativeSource Self}}"
             >
@@ -12,15 +13,18 @@
     </ContentPage.ToolbarItems>
     <ScrollView>
         <StackLayout>
-            <tk:Expander>
+            <tk:Expander ExpandedChanged="MainPage_SizeChanged">
                 <tk:Expander.Header>
-                    <Button Text="Describe display settings here" BackgroundColor="MediumAquamarine" Margin="3" TextColor="Black" x:Name="btnDisplay" >
-                        <Button.Triggers>
-                            <DataTrigger TargetType="{Type Button}" Binding="{Binding Source={RelativeSource AncestorType={Type tk:Expander}}, Path=IsExpanded}" Value="True">
-                                <Setter Property="Button.Text" Value="Display settings"/>
-                            </DataTrigger>
-                        </Button.Triggers>
-                    </Button>
+                    <Grid>
+                        <RoundRectangle BackgroundColor="MediumAquamarine" Margin="3" CornerRadius="10" />
+                        <Label TextColor="Black" x:Name="lblDisplay" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" Margin="6" MinimumHeightRequest="39">
+                            <Label.Triggers>
+                                <DataTrigger TargetType="{Type Label}" Binding="{Binding Source={RelativeSource AncestorType={Type tk:Expander}}, Path=IsExpanded}" Value="True">
+                                    <Setter Property="Label.Text" Value="Display settings"/>
+                                </DataTrigger>
+                            </Label.Triggers>
+                        </Label>
+                    </Grid>
                 </tk:Expander.Header>
                 <tk:Expander.Content>
                     <Grid HorizontalOptions="Fill" Margin="3">
@@ -40,7 +44,7 @@
                         <Switch x:Name="chkHideDistant" Grid.Row="0" Grid.Column="2" IsToggled="{Binding HideDistantHouses}" HorizontalOptions="End"/>
 
                         <Label Text="Show house numbers:" Margin="3" Grid.Row="1" Grid.ColumnSpan="2" VerticalTextAlignment="Center" HorizontalTextAlignment="Center" FontSize="Medium"/>
-                        <Grid RadioButtonGroup.GroupName="grpNumberFilter" RadioButtonGroup.SelectedValue="{Binding SelectedFilter}" Grid.Row="2" Grid.ColumnSpan="2" HorizontalOptions="Center">
+                        <Grid x:Name="grdNumberFilter" RadioButtonGroup.GroupName="grpNumberFilter" RadioButtonGroup.SelectedValue="{Binding SelectedFilter}" Grid.Row="2" Grid.ColumnSpan="2" HorizontalOptions="Center">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
@@ -51,7 +55,7 @@
                             <RadioButton Content="Both" Grid.Row="2" Grid.Column="2" FontSize="Medium" Value="3" HorizontalOptions="Start" IsChecked="True"/>
                         </Grid>
                         <Label Text="Sort by:" Margin="3" Grid.Row="3" Grid.ColumnSpan="2" VerticalTextAlignment="Center" HorizontalTextAlignment="Center" FontSize="Medium"/>
-                        <Grid RadioButtonGroup.GroupName="grpSelectedSort" RadioButtonGroup.SelectedValue="{Binding SelectedSort}" Grid.Row="4" Grid.ColumnSpan="2" HorizontalOptions="Center">
+                        <Grid x:Name="grdSelectedSort" RadioButtonGroup.GroupName="grpSelectedSort" RadioButtonGroup.SelectedValue="{Binding SelectedSort}" Grid.Row="4" Grid.ColumnSpan="2" HorizontalOptions="Center">
                             <Grid.RowDefinitions>
                                 <RowDefinition/>
                                 <RowDefinition/>
@@ -59,11 +63,13 @@
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <RadioButton Content="Distance" Grid.Row="0" Grid.Column="0" FontSize="Medium" Value="0" HorizontalOptions="Start" IsChecked="True"/>
-                            <RadioButton Content="Address" Grid.Row="0" Grid.Column="1" FontSize="Medium" Value="3" HorizontalOptions="Start"/>
-                            <RadioButton Content="Walk order" Grid.Row="1" Grid.Column="0" FontSize="Medium" Value="1" HorizontalOptions="Start"/>
-                            <RadioButton Content="Reverse walk" Grid.Row="1" Grid.Column="1" FontSize="Medium" Value="2" HorizontalOptions="Start"/>
+                            <RadioButton Content="Distance" Grid.Column="0" FontSize="Medium" Value="0" HorizontalOptions="Start" IsChecked="True"/>
+                            <RadioButton Content="Address" Grid.Column="1" FontSize="Medium" Value="3" HorizontalOptions="Start"/>
+                            <RadioButton Content="Walk order" Grid.Column="2" FontSize="Medium" Value="1" HorizontalOptions="Start"/>
+                            <RadioButton Content="Reverse walk" Grid.Column="3" FontSize="Medium" Value="2" HorizontalOptions="Start"/>
                         </Grid>
                     </Grid>
                 </tk:Expander.Content>
