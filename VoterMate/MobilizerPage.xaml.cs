@@ -98,7 +98,7 @@ public partial class MobilizerPage : ContentPage
 
     private void ContentPage_NavigatingFrom(object sender, NavigatingFromEventArgs e) => Save();
 
-    public void Save()
+    private async void Save()
     {
         _mainPage.LogEvent("Closing mobilizer page (Note: Reports household location)", Mobilizer.ID, _location);
 
@@ -106,18 +106,40 @@ public partial class MobilizerPage : ContentPage
         if (string.IsNullOrEmpty(name))
             name = "<No name entered>";
 
+        bool mobilizerContacted = false;
+        int friends = 0;
+
         using (CsvWriter csv = new(new StreamWriter(Path.Combine(FileSystem.Current.AppDataDirectory, "contactCommitments_v2.csv"), true), CultureInfo.InvariantCulture))
             foreach (var voter in _fetchedVoters.Where(v => v.WillContact))
             {
                 voter.WillContact = false;
                 csv.WriteRecord(new ContactCommitment(_mainPage.Canvasser, _mobilizer.ID ?? name, voter.ID, _location.Latitude, _location.Longitude));
                 csv.NextRecord();
+                friends++;
+                mobilizerContacted = true;
             }
 
         if (!string.IsNullOrEmpty(_mobilizer.Phone) || Mobilizer.NameChanged)
+        {
             App.PhoneNumbers.Append(new PhoneNumber(_mainPage.Canvasser, _mobilizer.ID ?? name, _mobilizer.Phone, _location.Latitude, _location.Longitude, Mobilizer.NameChanged ? name : null));
+            mobilizerContacted = true;
+        }
 
         App.Database.SaveShownFriends();
+
+        if (mobilizerContacted)
+        {
+            int friendCount = Math.Min(10, friends);
+            _mainPage.FriendsCommitted += friendCount;
+            _mainPage.FriendsCommittedThisHour += friendCount;
+            _mainPage.MobilizersContacted++;
+            _mainPage.MobilizersContactedThisHour++;
+            _mainPage.UpdateProgress();
+            await Task.Delay(1000 * 3600);
+            _mainPage.FriendsCommittedThisHour -= friendCount;
+            _mainPage.MobilizersContactedThisHour--;
+            _mainPage.UpdateProgress();
+        }
     }
 
     internal static Task LoadShownFriendsData(FileResult file) => App.Database.LoadShownFriends(file);

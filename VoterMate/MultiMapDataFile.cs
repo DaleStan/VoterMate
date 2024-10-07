@@ -35,6 +35,8 @@ internal class MultiMapDataFile<TRecord>
         }
     }
 
+    public Dictionary<string, List<TRecord>>.KeyCollection Keys => _data.Keys;
+
     public bool ContainsKey(string key) => _data.ContainsKey(key);
 
     public void AddValue(TRecord record)

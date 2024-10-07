@@ -76,6 +76,7 @@
             </tk:Expander>
             <StackLayout x:Name="namesPanel"/>
             <Button Text="Mobilizer not listed" Margin="3" Clicked="NotListed_Clicked"/>
+            <Label x:Name="lblProgress" Margin="3"/>
             <Border Margin="5" HorizontalOptions="FillAndExpand" Stroke="Gray" StrokeThickness="2"/>
             <Grid>
                 <Grid.ColumnDefinitions>

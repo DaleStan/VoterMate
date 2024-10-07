@@ -59,12 +59,20 @@ public partial class MainPage : ContentPage, INotifyPropertyChanged
         }
     }
 
+    public int FriendsCommitted { get; set; }
+    public int FriendsCommittedThisHour { get; set; }
+    public int MobilizersContacted { get; set; }
+    public int MobilizersContactedThisHour { get; set; }
+    public int DoorsKnocked { get; set; }
+    public int DoorsKnockedThisHour { get; set; }
+
     public MainPage()
     {
         InitializeComponent();
         using StreamReader sr = new(typeof(TsvDatabase).Assembly.GetManifestResourceStream("VoterMate.Database.voterDataDate.tsv")!);
         lblBuildInfo.Text = GetBuildInfo() + "\n" + sr.ReadToEnd();
         SetDisplayDescription();
+        DoorsKnocked = App.DoorsKnocked.Keys.Count;
 
         try
         {
@@ -151,7 +159,7 @@ public partial class MainPage : ContentPage, INotifyPropertyChanged
             {
                 App.DoorsKnocked.AddValue(new(Canvasser, household.Address, "Other mobilizer"));
                 NotListed_Clicked(s, e);
-                ((Button)expander.Header).BackgroundColor = Colors.ForestGreen;
+                DoorKnocked((Button)expander.Header);
             };
             grid.AddWithSpan(noResponse, grid.RowDefinitions.Count - 1, columnSpan: 2);
 
@@ -161,7 +169,7 @@ public partial class MainPage : ContentPage, INotifyPropertyChanged
             {
                 expander.IsExpanded = false;
                 App.DoorsKnocked.AddValue(new(Canvasser, household.Address, "No response"));
-                ((Button)expander.Header).BackgroundColor = Colors.ForestGreen;
+                DoorKnocked((Button)expander.Header);
             };
             grid.AddWithSpan(noResponse, grid.RowDefinitions.Count - 1, columnSpan: 2);
 
@@ -186,7 +194,7 @@ public partial class MainPage : ContentPage, INotifyPropertyChanged
                     LogEvent("Opening mobilizer page (selected)", mobilizer.ID, _location);
                     App.DoorsKnocked.AddValue(new(Canvasser, household.Address, mobilizer.ID!));
                     await Navigation.PushAsync(new MobilizerPage(household.Location, mobilizer, this));
-                    ((Button)expander.Header).BackgroundColor = Colors.ForestGreen;
+                    DoorKnocked((Button)expander.Header);
                 }
                 async void AddNote(object? sender, EventArgs e)
                 {
@@ -202,6 +210,20 @@ public partial class MainPage : ContentPage, INotifyPropertyChanged
 
             expander.IsExpanded = households.Count == 1;
             namesPanel.Add(expander);
+        }
+    }
+
+    private async void DoorKnocked(Button button)
+    {
+        if (button.BackgroundColor != Colors.ForestGreen)
+        {
+            button.BackgroundColor = Colors.ForestGreen;
+            DoorsKnocked++;
+            DoorsKnockedThisHour++;
+            UpdateProgress();
+            await Task.Delay(1000 * 3600);
+            DoorsKnockedThisHour--;
+            UpdateProgress();
         }
     }
 
@@ -449,6 +471,12 @@ public partial class MainPage : ContentPage, INotifyPropertyChanged
 
         if (_location != null)
             LocationChanged(_location);
+    }
+
+    internal void UpdateProgress()
+    {
+        lblProgress.Text = $"Knocked on {DoorsKnocked} doors, talked to {MobilizersContacted} mobilizers, and got {FriendsCommitted} commitments. " +
+            $"({DoorsKnockedThisHour}, {MobilizersContactedThisHour}, and {FriendsCommittedThisHour} in the last 60 minutes.)";
     }
 
     private static readonly CsvConfiguration _csvConfiguration = new(CultureInfo.InvariantCulture) { HasHeaderRecord = false };
