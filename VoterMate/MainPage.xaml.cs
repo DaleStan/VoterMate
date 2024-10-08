@@ -301,7 +301,7 @@ public partial class MainPage : ContentPage, INotifyPropertyChanged
         }
     }
 
-    private void SetDisplayDescription()
+    private async void SetDisplayDescription()
     {
         if (lblDisplay == null) return;
 
@@ -335,6 +335,7 @@ public partial class MainPage : ContentPage, INotifyPropertyChanged
         }
         lblDisplay.Text = description.ToString();
 
+        _location ??= await Geolocation.GetLocationAsync(new GeolocationRequest(GeolocationAccuracy.Best));
         if (_location != null)
             LocationChanged(_location);
     }
@@ -448,7 +449,7 @@ public partial class MainPage : ContentPage, INotifyPropertyChanged
 
     private void Settings_Clicked(object sender, EventArgs e) => Navigation.PushAsync(new SettingsPage(this));
 
-    internal void UpdateSettings(string canvasser)
+    internal async void UpdateSettings(string canvasser)
     {
         Canvasser = canvasser;
         foreach (var path in Directory.GetFiles(FileSystem.Current.AppDataDirectory, "*.csv"))
@@ -469,6 +470,7 @@ public partial class MainPage : ContentPage, INotifyPropertyChanged
 
         File.WriteAllText(Path.Combine(FileSystem.Current.AppDataDirectory, "canvasser.txt"), Canvasser);
 
+        _location ??= await Geolocation.GetLocationAsync(new GeolocationRequest(GeolocationAccuracy.Best));
         if (_location != null)
             LocationChanged(_location);
     }
