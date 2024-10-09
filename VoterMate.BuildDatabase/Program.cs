@@ -1,5 +1,6 @@
 ﻿using Microsoft.Maui.Devices.Sensors;
 using OfficeOpenXml;
+using OfficeOpenXml.ConditionalFormatting.Contracts;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using VoterMate.Database;
@@ -31,7 +32,7 @@ internal static partial class Program
         if (ReadExcel(housemates, households, voters, turfs, priorityVoters) && dotGitFolder != null)
         {
             Directory.SetCurrentDirectory(Path.Combine(rootFolder, "VoterMate\\Database"));
-            WriteTsv(housemates, households, voters, priorityVoters);
+            WriteTsv(housemates, voters, priorityVoters);
             File.WriteAllText("voterDataDate.tsv", GetBuildInfo() ?? "Voter data date/time unknown");
         }
 
@@ -86,14 +87,8 @@ internal static partial class Program
 
         // Slurp the data out of the Excel file and into intermediate maps.
 
-        var priorityDB = workbook.Worksheets["all voters we want to put on the list"];
-        int rowCount = priorityDB.Rows.Count();
-        for (int i = 2; i <= rowCount; i++)
-            priorityVoters.Add(priorityDB.Cells[i, 1].Value.ToString()!);
-
-
         var mobilizerDB = workbook.Worksheets["canvass"];
-        rowCount = mobilizerDB.Rows.Count();
+        int rowCount = mobilizerDB.Rows.Count();
         for (int i = 2; i <= rowCount; i++)
         {
             string id = mobilizerDB.Cells[i, 1].Value.ToString()!;
@@ -118,7 +113,8 @@ internal static partial class Program
         rowCount = voterDB.Rows.Count();
         for (int i = 2; i <= rowCount; i++)
         {
-            string id = voterDB.Cells[i, 1].Value.ToString()!;
+            string? id = voterDB.Cells[i, 1].Value?.ToString();
+            if (id == null) continue;
             _ = DateTime.TryParse(voterDB.Cells[i, 8].Value.ToString(), out var birthDate);
             Location location = new(Convert.ToDouble(voterDB.Cells[i, 4].Value), Convert.ToDouble(voterDB.Cells[i, 5].Value));
             voters[id] = new Voter(id, GetName(voterDB, i), voterDB.Cells[i, 2].Value.ToString()!.Trim(), location, birthDate, voterDB.Cells[i, 3].Value.ToString()!.Trim());
@@ -139,12 +135,23 @@ internal static partial class Program
             housemates2.Add(housemate1);
         }
 
+        var priorityDB = workbook.Worksheets["all voters we want to put on the list"];
+        rowCount = priorityDB.Rows.Count();
+        for (int i = 2; i <= rowCount; i++)
+        {
+            var id = priorityDB.Cells[i, 1].Value?.ToString();
+            if (id != null && voters.ContainsKey(id))
+                priorityVoters.Add(id);
+            else if (id != null)
+                Console.WriteLine($"WARNING: Skipping priority voter {id} ({priorityDB.Cells[i, 2].Value}) because they do not appear on the 'voterDB' tab.");
+        }
+
         return result;
 
         static string GetName(ExcelWorksheet sheet, int i) => NameFilter().Match(sheet.Cells[i, 2].Value.ToString()!).Groups[1].Value;
     }
 
-    private static void WriteTsv(Dictionary<string, HashSet<string>> housemates, Dictionary<string, Household> households, Dictionary<string, Voter> voters, HashSet<string> priorityVoters)
+    private static void WriteTsv(Dictionary<string, HashSet<string>> housemates, Dictionary<string, Voter> voters, HashSet<string> priorityVoters)
     {
         using (StreamWriter housematesSteam = new("housemates.tsv") { NewLine = "\n" })
             foreach (var (key, value) in housemates)
