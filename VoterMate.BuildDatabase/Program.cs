@@ -1,6 +1,5 @@
 ﻿using Microsoft.Maui.Devices.Sensors;
 using OfficeOpenXml;
-using OfficeOpenXml.ConditionalFormatting.Contracts;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using VoterMate.Database;
@@ -88,7 +87,7 @@ internal static partial class Program
         // Slurp the data out of the Excel file and into intermediate maps.
 
         var mobilizerDB = workbook.Worksheets["canvass"];
-        int rowCount = mobilizerDB.Rows.Count();
+        int rowCount = mobilizerDB.Dimension.Rows;
         for (int i = 2; i <= rowCount; i++)
         {
             string id = mobilizerDB.Cells[i, 1].Value.ToString()!;
@@ -110,7 +109,7 @@ internal static partial class Program
         }
 
         var voterDB = workbook.Worksheets["voterDB"];
-        rowCount = voterDB.Rows.Count();
+        rowCount = voterDB.Dimension.Rows;
         for (int i = 2; i <= rowCount; i++)
         {
             string? id = voterDB.Cells[i, 1].Value?.ToString();
@@ -121,7 +120,7 @@ internal static partial class Program
         }
 
         var housemateDB = workbook.Worksheets["households"];
-        rowCount = housemateDB.Rows.Count();
+        rowCount = housemateDB.Dimension.Rows;
         for (int i = 2; i <= rowCount; i++)
         {
             string? housemate1 = housemateDB.Cells[i, 1].Value?.ToString();
@@ -136,7 +135,7 @@ internal static partial class Program
         }
 
         var priorityDB = workbook.Worksheets["all voters we want to put on the list"];
-        rowCount = priorityDB.Rows.Count();
+        rowCount = priorityDB.Dimension.Rows;
         for (int i = 2; i <= rowCount; i++)
         {
             var id = priorityDB.Cells[i, 1].Value?.ToString();
