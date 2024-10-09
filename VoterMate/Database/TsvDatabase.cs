@@ -13,6 +13,7 @@ internal class TsvDatabase : IDatabase
     private readonly Dictionary<string, List<Voter>> _voterAddresses = [];
     private readonly HashSet<Voter> _priorityVoters = [];
     private readonly Dictionary<string, HashSet<string>> _friendsShown = [];
+    private readonly Dictionary<string, List<Voter>> _voterNames = new(StringComparer.InvariantCultureIgnoreCase);
 
     public TsvDatabase()
     {
@@ -30,6 +31,9 @@ internal class TsvDatabase : IDatabase
                 if (!_voterAddresses.TryGetValue(voter.Address, out var household))
                     _voterAddresses[voter.Address] = household = [];
                 household.Add(voter);
+                string name = voter.Name.Replace("  ", " ");
+                if (!_voterNames.TryGetValue(name, out var names)) _voterNames[name] = names = [];
+                names.Add(voter);
             }
 
         using (StreamReader sr = new(typeof(TsvDatabase).Assembly.GetManifestResourceStream("VoterMate.Database.priorityVoters.tsv")!))
@@ -53,7 +57,7 @@ internal class TsvDatabase : IDatabase
 
     public IReadOnlyList<Household> GetHouseholds() => _households.AsReadOnly();
 
-    public IReadOnlyCollection<Voter> GetVoters(Location location, Mobilizer mobilizer) => new ReadOnlyCollection(this, location, mobilizer);
+    public IReadOnlyCollection<Voter> GetPriorityVoters(Location location, Mobilizer mobilizer) => new ReadOnlyCollection(this, location, mobilizer);
 
     public (Mobilizer, Location)? GetMobilizer(string voterID)
     {
@@ -75,6 +79,12 @@ internal class TsvDatabase : IDatabase
         using Stream stream = await file.OpenReadAsync();
         using StreamReader sr = new(stream);
         LoadShownFriends(sr);
+    }
+
+    public IReadOnlyList<Voter> GetVotersByName(string name)
+    {
+        _ = _voterNames.TryGetValue(name, out var voters);
+        return voters ?? [];
     }
 
     private void LoadShownFriends(StreamReader sr)

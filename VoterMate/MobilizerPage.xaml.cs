@@ -31,7 +31,7 @@ public partial class MobilizerPage : ContentPage
 
         _mobilizer = mobilizer ?? new Mobilizer(null, string.Empty, null);
         _mainPage = page;
-        _voters = App.Database.GetVoters(location, _mobilizer);
+        _voters = App.Database.GetPriorityVoters(location, _mobilizer);
         for (int i = 0; i < 101; i++)
             dgVoters.RowDefinitions.Add(new(GridLength.Auto));
 

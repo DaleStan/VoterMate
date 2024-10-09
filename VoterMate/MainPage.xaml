@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:tk="clr-namespace:CommunityToolkit.Maui.Views;assembly=CommunityToolkit.Maui"
+             xmlns:sf="clr-namespace:Syncfusion.Maui.Inputs;assembly=Syncfusion.Maui.Inputs"
              x:Class="VoterMate.MainPage"
              Loaded="MainPage_Loaded"
              SizeChanged="MainPage_SizeChanged"
@@ -78,6 +79,15 @@
             <Button Text="Mobilizer not listed" Margin="3" Clicked="NotListed_Clicked"/>
             <Label x:Name="lblProgress" Margin="3"/>
             <Border Margin="5" HorizontalOptions="FillAndExpand" Stroke="Gray" StrokeThickness="2"/>
+            <Label Text="Look up by exact name:" Margin="3"/>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Entry x:Name="txtVoterName" Margin="20,3,3,3" TextChanged="txtVoterName_TextChanged" Completed="btnVoterName_Clicked"/>
+                <Button x:Name="btnVoterName" Margin="3" IsEnabled="False" Text="Enter a name" Grid.Column="1" Clicked="btnVoterName_Clicked"/>
+            </Grid>
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
