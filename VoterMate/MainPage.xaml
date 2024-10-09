@@ -11,7 +11,7 @@
     <ContentPage.ToolbarItems>
         <ToolbarItem IconImageSource="settings.png" Clicked="Settings_Clicked"/>
     </ContentPage.ToolbarItems>
-    <ScrollView>
+    <ScrollView x:Name="sv">
         <StackLayout>
             <tk:Expander ExpandedChanged="MainPage_SizeChanged">
                 <tk:Expander.Header>

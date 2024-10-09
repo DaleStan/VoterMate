@@ -145,6 +145,8 @@ public partial class MainPage : ContentPage, INotifyPropertyChanged
                 Margin = 3
             };
 
+            expander.ExpandedChanged += Expander_ExpandedChanged;
+
             if (App.DoorsKnocked.ContainsKey(household.Address))
                 ((Button)expander.Header).BackgroundColor = Colors.ForestGreen;
 
@@ -210,6 +212,21 @@ public partial class MainPage : ContentPage, INotifyPropertyChanged
 
             expander.IsExpanded = households.Count == 1;
             namesPanel.Add(expander);
+        }
+    }
+
+    private async void Expander_ExpandedChanged(object? sender, CommunityToolkit.Maui.Core.ExpandedChangedEventArgs e)
+    {
+        var expander = (Expander)sender!;
+        if (expander.IsExpanded)
+        {
+            await Task.Delay(10);
+            double initialScroll = sv.ScrollY;
+            await sv.ScrollToAsync(expander, ScrollToPosition.End, false);
+            double endScroll = sv.ScrollY;
+            await sv.ScrollToAsync(0, initialScroll, false);
+            if (endScroll > initialScroll)
+                await sv.ScrollToAsync(0, endScroll, true);
         }
     }
 
