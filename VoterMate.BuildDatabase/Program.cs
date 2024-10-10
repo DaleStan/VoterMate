@@ -1,5 +1,6 @@
 ﻿using Microsoft.Maui.Devices.Sensors;
 using OfficeOpenXml;
+using System.Globalization;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using VoterMate.Database;
@@ -23,15 +24,16 @@ internal static partial class Program
         Dictionary<string, List<string>> turfs = [];
         // voterID -> Voter
         Dictionary<string, Voter> voters = [];
+        Dictionary<string, List<string>> nicknames = new(StringComparer.InvariantCultureIgnoreCase);
         HashSet<string> priorityVoters = [];
 
         var dotGitFolder = LibGit2Sharp.Repository.Discover(Environment.CurrentDirectory);
         var rootFolder = dotGitFolder == null ? "." : new DirectoryInfo(dotGitFolder).Parent!.FullName;
 
-        if (ReadExcel(housemates, households, voters, turfs, priorityVoters) && dotGitFolder != null)
+        if (ReadExcel(housemates, households, voters, turfs, priorityVoters, nicknames) && dotGitFolder != null)
         {
             Directory.SetCurrentDirectory(Path.Combine(rootFolder, "VoterMate\\Database"));
-            WriteTsv(housemates, voters, priorityVoters);
+            WriteTsv(housemates, voters, priorityVoters, nicknames);
             File.WriteAllText("voterDataDate.tsv", GetBuildInfo() ?? "Voter data date/time unknown");
         }
 
@@ -61,7 +63,7 @@ internal static partial class Program
     }
 
 
-    private static bool ReadExcel(Dictionary<string, HashSet<string>> housemates, Dictionary<string, Household> households, Dictionary<string, Voter> voters, Dictionary<string, List<string>> turfs, HashSet<string> priorityVoters)
+    private static bool ReadExcel(Dictionary<string, HashSet<string>> housemates, Dictionary<string, Household> households, Dictionary<string, Voter> voters, Dictionary<string, List<string>> turfs, HashSet<string> priorityVoters, Dictionary<string, List<string>> nicknames)
     {
         bool result = true;
         HashSet<string> mobilizers = [];
@@ -145,12 +147,25 @@ internal static partial class Program
                 Console.WriteLine($"WARNING: Skipping priority voter {id} ({priorityDB.Cells[i, 2].Value}) because they do not appear on the 'voterDB' tab.");
         }
 
+        TextInfo textInfo = new CultureInfo("en-US", false).TextInfo;
+        var nicknameDB = workbook.Worksheets["allNicknames"];
+        rowCount = nicknameDB.Dimension.Rows;
+        for (int i = 2; i <= rowCount; i++)
+            if (nicknameDB.Cells[i, 1].Value != null && nicknameDB.Cells[i, 2].Value != null)
+            {
+                string name = textInfo.ToTitleCase(nicknameDB.Cells[i, 2].Value.ToString()!.Trim().ToLower());
+                string alternate = textInfo.ToTitleCase(nicknameDB.Cells[i, 1].Value.ToString()!.Trim().ToLower());
+                if (!nicknames.TryGetValue(name!, out var alternates))
+                    nicknames[name!] = alternates = [name];
+                alternates.Add(alternate);
+            }
+
         return result;
 
         static string GetName(ExcelWorksheet sheet, int i) => NameFilter().Match(sheet.Cells[i, 2].Value.ToString()!).Groups[1].Value;
     }
 
-    private static void WriteTsv(Dictionary<string, HashSet<string>> housemates, Dictionary<string, Voter> voters, HashSet<string> priorityVoters)
+    private static void WriteTsv(Dictionary<string, HashSet<string>> housemates, Dictionary<string, Voter> voters, HashSet<string> priorityVoters, Dictionary<string, List<string>> nicknames)
     {
         using (StreamWriter housematesSteam = new("housemates.tsv") { NewLine = "\n" })
             foreach (var (key, value) in housemates)
@@ -185,15 +200,21 @@ internal static partial class Program
                 var numberParts = parts.Where(p => int.TryParse(p, out int num) && num > 9).ToList();
                 numberParts.Add(match.Groups[2].Value[1..^1]);
 
-                foreach (var item in stringParts.Union(suffixParts).Union(numberParts))
+                foreach (var item1 in stringParts.Union(suffixParts).Union(numberParts))
                 {
-                    string cleaned = item;
-                    while (cleaned[0] is '0' or ' ' or '#')
-                        cleaned = cleaned[1..];
-                    if (cleaned.Length < 2) continue;
+                    if (!nicknames.TryGetValue(item1, out var alternates))
+                        alternates = [item1];
 
-                    if (!lookupDb.TryGetValue(cleaned, out var idList)) lookupDb[item] = idList = [];
-                    idList.Add(voter.ID);
+                    foreach (var item in alternates)
+                    {
+                        string cleaned = item;
+                        while (cleaned[0] is '0' or ' ' or '#')
+                            cleaned = cleaned[1..];
+                        if (cleaned.Length < 2) continue;
+
+                        if (!lookupDb.TryGetValue(cleaned, out var idList)) lookupDb[item] = idList = [];
+                        idList.Add(voter.ID);
+                    }
                 }
             }
         }
