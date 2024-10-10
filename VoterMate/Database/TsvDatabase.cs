@@ -13,7 +13,7 @@ internal class TsvDatabase : IDatabase
     private readonly Dictionary<string, List<Voter>> _voterAddresses = [];
     private readonly HashSet<Voter> _priorityVoters = [];
     private readonly Dictionary<string, HashSet<string>> _friendsShown = [];
-    private readonly Dictionary<string, List<Voter>> _voterNames = new(StringComparer.InvariantCultureIgnoreCase);
+    private readonly Dictionary<string, List<Voter>> _voterNameParts = new(StringComparer.InvariantCultureIgnoreCase);
 
     public TsvDatabase()
     {
@@ -31,14 +31,18 @@ internal class TsvDatabase : IDatabase
                 if (!_voterAddresses.TryGetValue(voter.Address, out var household))
                     _voterAddresses[voter.Address] = household = [];
                 household.Add(voter);
-                string name = voter.Name.Replace("  ", " ");
-                if (!_voterNames.TryGetValue(name, out var names)) _voterNames[name] = names = [];
-                names.Add(voter);
             }
 
         using (StreamReader sr = new(typeof(TsvDatabase).Assembly.GetManifestResourceStream("VoterMate.Database.priorityVoters.tsv")!))
             while (sr.ReadLine() is string line)
                 _priorityVoters.Add(_voters[line]);
+
+        using (StreamReader sr = new(typeof(TsvDatabase).Assembly.GetManifestResourceStream("VoterMate.Database.lookupDb.tsv")!))
+            while (sr.ReadLine() is string line)
+            {
+                var parts = line.Split('\t');
+                _voterNameParts[parts[0]] = [.. parts[1..].Select(v => _voters[v])];
+            }
 
         File.OpenWrite(Path.Combine(FileSystem.Current.AppDataDirectory, "friendsShown.csv")).Close();
         using (StreamReader sr = new(Path.Combine(FileSystem.Current.AppDataDirectory, "friendsShown.csv")))
@@ -81,9 +85,11 @@ internal class TsvDatabase : IDatabase
         LoadShownFriends(sr);
     }
 
-    public IReadOnlyList<Voter> GetVotersByName(string name)
+    public IReadOnlyCollection<string> GetNameParts() => _voterNameParts.Keys;
+
+    public IReadOnlyCollection<Voter> GetVoters(string namePart)
     {
-        _ = _voterNames.TryGetValue(name, out var voters);
+        _ = _voterNameParts.TryGetValue(namePart, out var voters);
         return voters ?? [];
     }
 

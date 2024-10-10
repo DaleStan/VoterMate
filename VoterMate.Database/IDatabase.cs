@@ -11,7 +11,8 @@ public interface IDatabase
     Task LoadShownFriends(FileResult file);
     void LoadTurfList(string path);
     void SaveShownFriends();
-    IReadOnlyList<Voter> GetVotersByName(string name);
+    IReadOnlyCollection<string> GetNameParts();
+    IReadOnlyCollection<Voter> GetVoters(string namePart);
 }
 
 public record Household(string Address, Location Location, List<Mobilizer> Mobilizers)

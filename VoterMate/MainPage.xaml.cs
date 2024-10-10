@@ -374,6 +374,8 @@ public partial class MainPage : ContentPage, INotifyPropertyChanged
 
         if (Canvasser == null)
             await Navigation.PushAsync(new SettingsPage(this));
+
+        acVoterName.ItemsSource = App.Database.GetNameParts();
     }
 
     private async void Window_Deactivated(object? sender, EventArgs e) => LogEvent("Deactivated", null, _location ?? await Geolocation.GetLastKnownLocationAsync());
@@ -625,66 +627,69 @@ public partial class MainPage : ContentPage, INotifyPropertyChanged
         }
     }
 
-    [GeneratedRegex(@"(\d+)( 1/2)? ([A-Z0-9 ]{4,}?) ")]
-    private static partial Regex SplitAddress();
-
     private void SfComboBox_SelectionChanged(object sender, Syncfusion.Maui.Inputs.SelectionChangedEventArgs e)
     {
         if (e.AddedItems?[0] is Voter { ID: string id })
             txtVoterID.Text = id[2..];
     }
 
-    private void txtVoterName_TextChanged(object sender, TextChangedEventArgs e)
+    private void acVoterName_SelectionChanged(object sender, Syncfusion.Maui.Inputs.SelectionChangedEventArgs e)
     {
-        var voters = App.Database.GetVotersByName(txtVoterName.Text.Trim());
-        switch (voters.Count)
+        var lists = acVoterName.SelectedItems?.Cast<string>().Select(App.Database.GetVoters).ToList() ?? [];
+        cboVoterName.IsDropDownOpen = false;
+
+        cboVoterName.IsVisible = true;
+        cboVoterName.IsEnabled = false;
+        btnVoterName.IsVisible = false;
+
+        if (lists.Count == 0)
         {
-            case 0:
-                btnVoterName.Text = "Enter a name";
-                btnVoterName.IsEnabled = false;
-                break;
-            case 1:
-                btnVoterName.Text = "Look up";
-                btnVoterName.IsEnabled = true;
-                break;
-            default:
-                btnVoterName.Text = $"View {voters.Count} options";
-                btnVoterName.IsEnabled = true;
-                break;
+            cboVoterName.Text = "No search parameters.";
+            namesPanel.IsVisible = true;
+        }
+        else
+        {
+            namesPanel.IsVisible = false;
+            var voters = lists.Aggregate((IEnumerable<Voter>)lists[0], (a, b) => a.Intersect(b)).ToList();
+            if (voters.Count == 0)
+            {
+                cboVoterName.Text = "No voters match all supplied filters.";
+            }
+            else if (voters.Count == 1)
+            {
+                btnVoterName.Text = "Look up " + voters[0].NameAgeAddress;
+                btnVoterName.IsVisible = true;
+                cboVoterName.IsVisible = false;
+                cboVoterName.ItemsSource = voters;
+                cboVoterName.SelectedItem = voters[0];
+            }
+            else if (voters.Count <= 20)
+            {
+                cboVoterName.ItemsSource = voters;
+                cboVoterName.SelectedItem = null;
+                cboVoterName.Text = $"Select one of {voters.Count} matches.";
+                cboVoterName.IsEnabled = true;
+            }
+            else
+            {
+                cboVoterName.Text = $"{voters.Count} matches; please add more filters.";
+            }
         }
     }
 
-    private async void btnVoterName_Clicked(object sender, EventArgs e)
+    private async void cboVoterName_SelectionChanged(object sender, EventArgs e)
     {
-        var voters = App.Database.GetVotersByName(txtVoterName.Text.Trim());
-        switch (voters.Count)
+        var element = (VisualElement)sender;
+        if (element.IsVisible && element.IsEnabled && cboVoterName.SelectedItem != null)
         {
-            case 0:
-                break;
-            case 1:
-                txtVoterID.Text = voters[0].ID[2..];
-                txtVoterName.Text = "";
-                var (mobilizer, location) = App.Database.GetMobilizer(voters[0].ID)!.Value;
-                LogEvent("Opening mobilizer page (Name lookup)", mobilizer.ID, _location);
-                await txtVoterID.HideSoftInputAsync(new CancellationTokenSource().Token);
-                await Navigation.PushAsync(new MobilizerPage(location, mobilizer, this));
-                break;
-            default:
-                var cbo = new SfComboBox { Margin = 3, ItemsSource = voters, DisplayMemberPath = nameof(Voter.NameAgeAddress) };
-                cbo.SelectionChanged += (s, e) =>
-                {
-                    string id = ((Voter)e.AddedItems![0]).ID;
-                    LogEvent("Setting mobilizer ID from name lookup", id, _location);
-                    txtVoterID.Text = id[2..];
-                    txtVoterName.Text = "";
-                    SfComboBox cbo = (SfComboBox)s!;
-                    ((Grid)cbo.Parent).Children.Remove(cbo);
-                };
-                ((Grid)btnVoterName.Parent).AddWithSpan(cbo, columnSpan: 2);
-                await Task.Delay(20);
-                cbo.IsDropDownOpen = true;
-                break;
+            var voter = (Voter)cboVoterName.SelectedItem;
+            txtVoterID.Text = voter.ID[2..];
+            Lookup_Clicked(sender, e);
+            acVoterName.SelectedItems?.Clear();
+            await txtVoterID.HideSoftInputAsync(new CancellationTokenSource().Token);
         }
-
     }
+
+    [GeneratedRegex(@"(\d+)( 1/2)? ([A-Z0-9 ]{4,}?) ")]
+    private static partial Regex SplitAddress();
 }

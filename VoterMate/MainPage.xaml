@@ -79,15 +79,10 @@
             <Button Text="Mobilizer not listed" Margin="3" Clicked="NotListed_Clicked"/>
             <Label x:Name="lblProgress" Margin="3"/>
             <Border Margin="5" HorizontalOptions="FillAndExpand" Stroke="Gray" StrokeThickness="2"/>
-            <Label Text="Look up by exact name:" Margin="3"/>
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <Entry x:Name="txtVoterName" Margin="20,3,3,3" TextChanged="txtVoterName_TextChanged" Completed="btnVoterName_Clicked"/>
-                <Button x:Name="btnVoterName" Margin="3" IsEnabled="False" Text="Enter a name" Grid.Column="1" Clicked="btnVoterName_Clicked"/>
-            </Grid>
+            <Label Text="Look up by name/address:" Margin="3"/>
+            <sf:SfAutocomplete x:Name="acVoterName" Margin="20,3,3,3" SelectionChanged="acVoterName_SelectionChanged" ReturnType="Next" Placeholder="Enter name, age, and/or address" SelectionMode="Multiple" MinimumPrefixCharacters="2" TextSearchMode="Contains"/>
+            <sf:SfComboBox x:Name="cboVoterName" Margin="20,3,3,3" SelectionChanged="cboVoterName_SelectionChanged" DisplayMemberPath="NameAgeAddress" IsClearButtonVisible="False" IsEnabled="False" Text="No search parameters."/>
+            <Button x:Name="btnVoterName" Margin="20,3,3,3" Clicked="cboVoterName_SelectionChanged" IsVisible="False"/>
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>

@@ -164,6 +164,45 @@ internal static partial class Program
         using (StreamWriter priorityVotersStream = new("priorityVoters.tsv") { NewLine = "\n" })
             foreach (var voter in priorityVoters)
                 priorityVotersStream.WriteLine(voter);
+
+        Dictionary<string, HashSet<string>> lookupDb = new(StringComparer.InvariantCultureIgnoreCase);
+        HashSet<string> suffixes = new(["Jr", "Sr", "Ii", "Iv"], StringComparer.InvariantCultureIgnoreCase);
+        HashSet<string> exclusions = new(["ave", "cir", "blvd", "st", "rd", "dr", "Apt"], StringComparer.InvariantCultureIgnoreCase);
+
+        foreach (var voter in voters.Values)
+        {
+            var match = NameAgeAddressSplit().Match(voter.NameAgeAddress);
+            if (match.Success)
+            {
+                List<string> parts = [.. match.Groups[1].Value.Split(' ', StringSplitOptions.RemoveEmptyEntries), .. match.Groups[3].Value.Split(' ', StringSplitOptions.RemoveEmptyEntries)];
+
+                if (parts[0].Length < 3)
+                    parts[0] = parts[0] + ' ' + parts[1];
+                if (match.Groups[3].Value.Contains("st rt")) parts.Add("state route");
+
+                var stringParts = parts.Where(p => p.Length >= 2).Except(suffixes).Except(exclusions).ToList();
+                var suffixParts = suffixes.Intersect(parts, StringComparer.InvariantCultureIgnoreCase).ToList();
+                var numberParts = parts.Where(p => int.TryParse(p, out int num) && num > 9).ToList();
+                numberParts.Add(match.Groups[2].Value[1..^1]);
+
+                foreach (var item in stringParts.Union(suffixParts).Union(numberParts))
+                {
+                    string cleaned = item;
+                    while (cleaned[0] is '0' or ' ' or '#')
+                        cleaned = cleaned[1..];
+                    if (cleaned.Length < 2) continue;
+
+                    if (!lookupDb.TryGetValue(cleaned, out var idList)) lookupDb[item] = idList = [];
+                    idList.Add(voter.ID);
+                }
+            }
+        }
+
+        using (StreamWriter lookupDbStream = new("lookupDb.tsv") { NewLine = "\n" })
+        {
+            foreach (var (key, value) in lookupDb.OrderBy(kvp => kvp.Key.Length).ThenBy(kvp => kvp.Key))
+                lookupDbStream.WriteLine(key + "\t" + string.Join('\t', value));
+        }
     }
 
     private static void WriteTurfs(Dictionary<string, List<string>> turfs)
@@ -183,5 +222,8 @@ internal static partial class Program
 
     [GeneratedRegex(@"^([^[]*?)\s+\[")]
     private static partial Regex NameFilter();
+
+    [GeneratedRegex(@"^(.*?)\s+(\[\d+])\s+(.*)$")]
+    private static partial Regex NameAgeAddressSplit();
 }
 
