@@ -8,8 +8,8 @@ public partial class LookupPage : ContentPage
     private readonly MainPage _mainPage;
 
     public LookupPage(MainPage mainPage)
-	{
-		InitializeComponent();
+    {
+        InitializeComponent();
         _mainPage = mainPage;
     }
 
@@ -42,6 +42,7 @@ public partial class LookupPage : ContentPage
         cboVoterName.IsVisible = true;
         cboVoterName.IsEnabled = false;
         btnVoterName.IsVisible = false;
+        lblWarning.IsVisible = false;
 
         if (lists.Count == 0)
         {
@@ -50,9 +51,16 @@ public partial class LookupPage : ContentPage
         else
         {
             var voters = lists.Aggregate((IEnumerable<Voter>)lists[0], (a, b) => a.Intersect(b)).ToList();
+            if (voters.Count == 0 && lists.Count > 1)
+            {
+                for (int i = 0; i < lists.Count; i++)
+                    voters.AddRange(lists.Except([lists[i]]).Aggregate((IEnumerable<Voter>)lists.Except([lists[i]]).First(), (a, b) => a.Intersect(b)));
+                voters = voters.Distinct().ToList();
+                lblWarning.IsVisible = true;
+            }
             if (voters.Count == 0)
             {
-                cboVoterName.Text = "No voters match all supplied filters";
+                cboVoterName.Text = "No voters match supplied filters";
             }
             else if (voters.Count == 1)
             {

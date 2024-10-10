@@ -8,6 +8,7 @@
     <VerticalStackLayout>
         <Label Text="Look up by name/address:" Margin="3"/>
         <sf:SfAutocomplete x:Name="acVoterName" Margin="20,3,3,3" SelectionChanged="acVoterName_SelectionChanged" ReturnType="Next" Placeholder="Enter name, age, and/or address" SelectionMode="Multiple" MinimumPrefixCharacters="2" TextSearchMode="Contains"/>
+        <Label x:Name="lblWarning" Text="No voters match all filters. Showing voters that match all but one filter." TextColor="Red" IsVisible="False" Margin="20,3,3,3"/>
         <sf:SfComboBox x:Name="cboVoterName" Margin="20,3,3,3" SelectionChanged="cboVoterName_SelectionChanged" DisplayMemberPath="NameAgeAddress" IsClearButtonVisible="False" IsEnabled="False" Text="No search parameters"/>
         <Button x:Name="btnVoterName" Margin="20,3,3,3" Clicked="cboVoterName_SelectionChanged" IsVisible="False"/>
         <Grid>
