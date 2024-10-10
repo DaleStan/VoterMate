@@ -13,6 +13,7 @@ public interface IDatabase
     void SaveShownFriends();
     IReadOnlyCollection<string> GetNameParts();
     IReadOnlyCollection<Voter> GetVoters(string namePart);
+    IReadOnlyList<Voter> GetVotersByName(string name);
 }
 
 public record Household(string Address, Location Location, List<Mobilizer> Mobilizers)

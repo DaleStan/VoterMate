@@ -1,4 +1,3 @@
-using Syncfusion.Maui.Inputs;
 using VoterMate.Database;
 
 namespace VoterMate;
@@ -16,7 +15,7 @@ public partial class LookupPage : ContentPage
     private void ContentPage_Loaded(object sender, EventArgs e)
     {
         acVoterName.ItemsSource = App.Database.GetNameParts();
-        acVoterName.Focus();
+        txtVoterName.Focus();
     }
 
     private async void Lookup_Clicked(object sender, EventArgs e)
@@ -36,9 +35,13 @@ public partial class LookupPage : ContentPage
 
     private void acVoterName_SelectionChanged(object sender, Syncfusion.Maui.Inputs.SelectionChangedEventArgs e)
     {
+        if (acVoterName.SelectedItems?.Count > 0 && txtVoterName.Text != "")
+        {
+            txtVoterName.Text = "";
+        }
+
         var lists = acVoterName.SelectedItems?.Cast<string>().Select(App.Database.GetVoters).ToList() ?? [];
         cboVoterName.IsDropDownOpen = false;
-
         cboVoterName.IsVisible = true;
         cboVoterName.IsEnabled = false;
         btnVoterName.IsVisible = false;
@@ -58,29 +61,54 @@ public partial class LookupPage : ContentPage
                 voters = voters.Distinct().ToList();
                 lblWarning.IsVisible = true;
             }
-            if (voters.Count == 0)
+            ConfigureVoterSelection(voters);
+        }
+    }
+
+    private async void txtVoterName_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (txtVoterName.Text != "" && acVoterName.SelectedItems?.Count > 0)
+        {
+            acVoterName.SelectedItems?.Clear();
+            do
             {
-                cboVoterName.Text = "No voters match supplied filters";
-            }
-            else if (voters.Count == 1)
-            {
-                btnVoterName.Text = "Look up " + voters[0].NameAgeAddress;
-                btnVoterName.IsVisible = true;
-                cboVoterName.IsVisible = false;
-                cboVoterName.ItemsSource = voters;
-                cboVoterName.SelectedItem = voters[0];
-            }
-            else if (voters.Count <= 20)
-            {
-                cboVoterName.ItemsSource = voters;
-                cboVoterName.SelectedItem = null;
-                cboVoterName.Text = $"Select one of {voters.Count} matches";
-                cboVoterName.IsEnabled = true;
-            }
-            else
-            {
-                cboVoterName.Text = $"{voters.Count} matches; please add more filters";
-            }
+                await Task.Delay(20);
+                txtVoterName.Focus();
+            } while (!txtVoterName.IsFocused);
+        }
+
+        cboVoterName.IsDropDownOpen = false;
+        cboVoterName.IsVisible = true;
+        cboVoterName.IsEnabled = false;
+        btnVoterName.IsVisible = false;
+        lblWarning.IsVisible = false;
+        ConfigureVoterSelection(App.Database.GetVotersByName(txtVoterName.Text));
+    }
+
+    private void ConfigureVoterSelection(IReadOnlyList<Voter> voters)
+    {
+        if (voters.Count == 0)
+        {
+            cboVoterName.Text = "No voters match supplied filters";
+        }
+        else if (voters.Count == 1)
+        {
+            btnVoterName.Text = "Look up " + voters[0].NameAgeAddress;
+            btnVoterName.IsVisible = true;
+            cboVoterName.IsVisible = false;
+            cboVoterName.ItemsSource = voters;
+            cboVoterName.SelectedItem = voters[0];
+        }
+        else if (voters.Count <= 20)
+        {
+            cboVoterName.ItemsSource = voters;
+            cboVoterName.SelectedItem = null;
+            cboVoterName.Text = $"Select one of {voters.Count} matches";
+            cboVoterName.IsEnabled = true;
+        }
+        else
+        {
+            cboVoterName.Text = $"{voters.Count} matches; please add more filters";
         }
     }
 
