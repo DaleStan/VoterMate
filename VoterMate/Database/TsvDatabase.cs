@@ -15,6 +15,7 @@ internal class TsvDatabase : IDatabase
     private readonly Dictionary<string, HashSet<string>> _friendsShown = [];
     private readonly Dictionary<string, List<Voter>> _voterNames = new(StringComparer.InvariantCultureIgnoreCase);
     private readonly Dictionary<string, List<Voter>> _voterNameParts = new(StringComparer.InvariantCultureIgnoreCase);
+    private readonly Dictionary<DateTime, List<Voter>> _voterBirth = new();
 
     public TsvDatabase()
     {
@@ -34,6 +35,8 @@ internal class TsvDatabase : IDatabase
                 household.Add(voter);
                 string name = voter.Name.Replace("  ", " ");
                 if (!_voterNames.TryGetValue(name, out var names)) _voterNames[name] = names = [];
+                names.Add(voter);
+                if (!_voterBirth.TryGetValue(voter.BirthDate, out names)) _voterBirth[voter.BirthDate] = names = [];
                 names.Add(voter);
             }
 
@@ -100,6 +103,12 @@ internal class TsvDatabase : IDatabase
     public IReadOnlyCollection<Voter> GetVoters(string namePart)
     {
         _ = _voterNameParts.TryGetValue(namePart, out var voters);
+        return voters ?? [];
+    }
+
+    public IReadOnlyList<Voter> GetVotersByBirthdate(DateTime date)
+    {
+        _ = _voterBirth.TryGetValue(date, out var voters);
         return voters ?? [];
     }
 

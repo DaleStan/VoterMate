@@ -15,7 +15,7 @@ public partial class LookupPage : ContentPage
     private void ContentPage_Loaded(object sender, EventArgs e)
     {
         acVoterName.ItemsSource = App.Database.GetNameParts();
-        txtVoterName.Focus();
+        acVoterName.Focus();
     }
 
     private async void Lookup_Clicked(object sender, EventArgs e)
@@ -41,11 +41,6 @@ public partial class LookupPage : ContentPage
         }
 
         var lists = acVoterName.SelectedItems?.Cast<string>().Select(App.Database.GetVoters).ToList() ?? [];
-        cboVoterName.IsDropDownOpen = false;
-        cboVoterName.IsVisible = true;
-        cboVoterName.IsEnabled = false;
-        btnVoterName.IsVisible = false;
-        lblWarning.IsVisible = false;
 
         if (lists.Count == 0)
         {
@@ -77,16 +72,29 @@ public partial class LookupPage : ContentPage
             } while (!txtVoterName.IsFocused);
         }
 
+        ConfigureVoterSelection(App.Database.GetVotersByName(txtVoterName.Text));
+    }
+
+    private void DatePicker_DateSelected(object sender, DateChangedEventArgs e)
+    {
+        if (acVoterName.SelectedItems?.Count > 0 || txtVoterName.Text != "")
+        {
+            txtVoterName.Text = "";
+            acVoterName.SelectedItems?.Clear();
+        }
+
+        ConfigureVoterSelection(App.Database.GetVotersByBirthdate(e.NewDate));
+    }
+
+
+    private void ConfigureVoterSelection(IReadOnlyList<Voter> voters)
+    {
         cboVoterName.IsDropDownOpen = false;
         cboVoterName.IsVisible = true;
         cboVoterName.IsEnabled = false;
         btnVoterName.IsVisible = false;
         lblWarning.IsVisible = false;
-        ConfigureVoterSelection(App.Database.GetVotersByName(txtVoterName.Text));
-    }
 
-    private void ConfigureVoterSelection(IReadOnlyList<Voter> voters)
-    {
         if (voters.Count == 0)
         {
             cboVoterName.Text = "No voters match supplied filters";

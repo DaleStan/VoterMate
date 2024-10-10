@@ -14,6 +14,7 @@ public interface IDatabase
     IReadOnlyCollection<string> GetNameParts();
     IReadOnlyCollection<Voter> GetVoters(string namePart);
     IReadOnlyList<Voter> GetVotersByName(string name);
+    IReadOnlyList<Voter> GetVotersByBirthdate(DateTime date);
 }
 
 public record Household(string Address, Location Location, List<Mobilizer> Mobilizers)
