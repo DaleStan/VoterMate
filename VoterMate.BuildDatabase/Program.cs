@@ -199,10 +199,8 @@ internal static partial class Program
         }
 
         using (StreamWriter lookupDbStream = new("lookupDb.tsv") { NewLine = "\n" })
-        {
             foreach (var (key, value) in lookupDb.OrderBy(kvp => kvp.Key.Length).ThenBy(kvp => kvp.Key))
                 lookupDbStream.WriteLine(key + "\t" + string.Join('\t', value));
-        }
     }
 
     private static void WriteTurfs(Dictionary<string, List<string>> turfs)

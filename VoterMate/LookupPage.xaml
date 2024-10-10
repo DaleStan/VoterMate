@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:sf="clr-namespace:Syncfusion.Maui.Inputs;assembly=Syncfusion.Maui.Inputs"
+             x:Class="VoterMate.LookupPage"
+             Loaded="ContentPage_Loaded"
+             Title="Voter Lookup">
+    <VerticalStackLayout>
+        <Label Text="Look up by name/address:" Margin="3"/>
+        <sf:SfAutocomplete x:Name="acVoterName" Margin="20,3,3,3" SelectionChanged="acVoterName_SelectionChanged" ReturnType="Next" Placeholder="Enter name, age, and/or address" SelectionMode="Multiple" MinimumPrefixCharacters="2" TextSearchMode="Contains"/>
+        <sf:SfComboBox x:Name="cboVoterName" Margin="20,3,3,3" SelectionChanged="cboVoterName_SelectionChanged" DisplayMemberPath="NameAgeAddress" IsClearButtonVisible="False" IsEnabled="False" Text="No search parameters"/>
+        <Button x:Name="btnVoterName" Margin="20,3,3,3" Clicked="cboVoterName_SelectionChanged" IsVisible="False"/>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+            <Label Text="Voter ID:  OH" Margin="5,5,0,5" VerticalOptions="Center"/>
+            <Entry x:Name="txtVoterID" MinimumWidthRequest="125" Grid.Column="1" Margin="0,3,3,3" Completed="Lookup_Clicked" Keyboard="Numeric"/>
+            <Button Text="Look up this mobilizer" Clicked="Lookup_Clicked" Margin="3" Grid.Column="2"/>
+        </Grid>
+    </VerticalStackLayout>
+</ContentPage>

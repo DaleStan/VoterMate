@@ -2,7 +2,6 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:tk="clr-namespace:CommunityToolkit.Maui.Views;assembly=CommunityToolkit.Maui"
-             xmlns:sf="clr-namespace:Syncfusion.Maui.Inputs;assembly=Syncfusion.Maui.Inputs"
              x:Class="VoterMate.MainPage"
              Loaded="MainPage_Loaded"
              SizeChanged="MainPage_SizeChanged"
@@ -10,6 +9,7 @@
              BindingContext="{Binding Source={RelativeSource Self}}"
             >
     <ContentPage.ToolbarItems>
+        <ToolbarItem IconImageSource="search.png" Clicked="Search_Clicked"/>
         <ToolbarItem IconImageSource="settings.png" Clicked="Settings_Clicked"/>
     </ContentPage.ToolbarItems>
     <ScrollView x:Name="sv">
@@ -78,22 +78,8 @@
             <StackLayout x:Name="namesPanel"/>
             <Button Text="Mobilizer not listed" Margin="3" Clicked="NotListed_Clicked"/>
             <Label x:Name="lblProgress" Margin="3"/>
-            <Border Margin="5" HorizontalOptions="FillAndExpand" Stroke="Gray" StrokeThickness="2"/>
-            <Label Text="Look up by name/address:" Margin="3"/>
-            <sf:SfAutocomplete x:Name="acVoterName" Margin="20,3,3,3" SelectionChanged="acVoterName_SelectionChanged" ReturnType="Next" Placeholder="Enter name, age, and/or address" SelectionMode="Multiple" MinimumPrefixCharacters="2" TextSearchMode="Contains"/>
-            <sf:SfComboBox x:Name="cboVoterName" Margin="20,3,3,3" SelectionChanged="cboVoterName_SelectionChanged" DisplayMemberPath="NameAgeAddress" IsClearButtonVisible="False" IsEnabled="False" Text="No search parameters."/>
-            <Button x:Name="btnVoterName" Margin="20,3,3,3" Clicked="cboVoterName_SelectionChanged" IsVisible="False"/>
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition/>
-                </Grid.ColumnDefinitions>
-                <Label Text="Voter ID:  OH" Margin="5,5,0,5" VerticalOptions="Center"/>
-                <Entry x:Name="txtVoterID" MinimumWidthRequest="125" Grid.Column="1" Margin="0,3,3,3" Completed="Lookup_Clicked" Keyboard="Numeric"/>
-                <Button Text="Look up this mobilizer" Clicked="Lookup_Clicked" Margin="3" Grid.Column="2"/>
-            </Grid>
-            <Label Text="Gear icon by INA from The Noun Project" FontSize="Micro" Margin="3"/>
+            <Label Text="Gear icon by @zullyantisiti78 from The Noun Project" FontSize="Micro" Margin="3"/>
+            <Label Text="Search icon by @kristianjb from The Noun Project" FontSize="Micro" Margin="3"/>
             <Grid Opacity="0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>

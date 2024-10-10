@@ -15,7 +15,7 @@ public partial class MobilizerPage : ContentPage
 
     public Mobilizer Mobilizer => _mobilizer;
 
-    public MobilizerPage(Location location, Mobilizer? mobilizer, MainPage page)
+    public MobilizerPage(Location location, Mobilizer? mobilizer, MainPage mainPage)
     {
         InitializeComponent();
 
@@ -30,7 +30,7 @@ public partial class MobilizerPage : ContentPage
             btnEdit.IconImageSource = null;
 
         _mobilizer = mobilizer ?? new Mobilizer(null, string.Empty, null);
-        _mainPage = page;
+        _mainPage = mainPage;
         _voters = App.Database.GetPriorityVoters(location, _mobilizer);
         for (int i = 0; i < 101; i++)
             dgVoters.RowDefinitions.Add(new(GridLength.Auto));

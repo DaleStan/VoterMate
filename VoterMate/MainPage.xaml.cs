@@ -1,7 +1,6 @@
 ﻿using CommunityToolkit.Maui.Views;
 using CsvHelper;
 using CsvHelper.Configuration;
-using Syncfusion.Maui.Inputs;
 using System.ComponentModel;
 using System.Globalization;
 using System.Reflection;
@@ -66,6 +65,7 @@ public partial class MainPage : ContentPage, INotifyPropertyChanged
     public int MobilizersContactedThisHour { get; set; }
     public int DoorsKnocked { get; set; }
     public int DoorsKnockedThisHour { get; set; }
+    public Location? Location => _location;
 
     public MainPage()
     {
@@ -374,8 +374,6 @@ public partial class MainPage : ContentPage, INotifyPropertyChanged
 
         if (Canvasser == null)
             await Navigation.PushAsync(new SettingsPage(this));
-
-        acVoterName.ItemsSource = App.Database.GetNameParts();
     }
 
     private async void Window_Deactivated(object? sender, EventArgs e) => LogEvent("Deactivated", null, _location ?? await Geolocation.GetLastKnownLocationAsync());
@@ -396,21 +394,6 @@ public partial class MainPage : ContentPage, INotifyPropertyChanged
         }
         else
             DisplayAlert("Unknown location", $"Friend lists cannot be displayed without a voter ID or location information.", "OK");
-    }
-
-    private async void Lookup_Clicked(object sender, EventArgs e)
-    {
-        var info = App.Database.GetMobilizer("OH" + txtVoterID.Text);
-        if (info == null)
-        {
-            await DisplayAlert("Not Found", $"The voter with ID OH{txtVoterID.Text} could not be found.", "OK");
-            return;
-        }
-
-        var (mobilizer, location) = info.Value;
-        LogEvent("Opening mobilizer page (ID lookup)", mobilizer.ID, _location);
-        await txtVoterID.HideSoftInputAsync(new CancellationTokenSource().Token);
-        await Navigation.PushAsync(new MobilizerPage(location, mobilizer, this));
     }
 
     private async void Copy_Clicked(object? sender, EventArgs e)
@@ -468,6 +451,7 @@ public partial class MainPage : ContentPage, INotifyPropertyChanged
     }
 
     private void Settings_Clicked(object sender, EventArgs e) => Navigation.PushAsync(new SettingsPage(this));
+    private void Search_Clicked(object sender, EventArgs e) => Navigation.PushAsync(new LookupPage(this));
 
     internal async void UpdateSettings(string canvasser)
     {
@@ -624,69 +608,6 @@ public partial class MainPage : ContentPage, INotifyPropertyChanged
         {
             grdNumberFilter.Scale = 1;
             grdNumberFilter.Margin = 0;
-        }
-    }
-
-    private void SfComboBox_SelectionChanged(object sender, Syncfusion.Maui.Inputs.SelectionChangedEventArgs e)
-    {
-        if (e.AddedItems?[0] is Voter { ID: string id })
-            txtVoterID.Text = id[2..];
-    }
-
-    private void acVoterName_SelectionChanged(object sender, Syncfusion.Maui.Inputs.SelectionChangedEventArgs e)
-    {
-        var lists = acVoterName.SelectedItems?.Cast<string>().Select(App.Database.GetVoters).ToList() ?? [];
-        cboVoterName.IsDropDownOpen = false;
-
-        cboVoterName.IsVisible = true;
-        cboVoterName.IsEnabled = false;
-        btnVoterName.IsVisible = false;
-
-        if (lists.Count == 0)
-        {
-            cboVoterName.Text = "No search parameters.";
-            namesPanel.IsVisible = true;
-        }
-        else
-        {
-            namesPanel.IsVisible = false;
-            var voters = lists.Aggregate((IEnumerable<Voter>)lists[0], (a, b) => a.Intersect(b)).ToList();
-            if (voters.Count == 0)
-            {
-                cboVoterName.Text = "No voters match all supplied filters.";
-            }
-            else if (voters.Count == 1)
-            {
-                btnVoterName.Text = "Look up " + voters[0].NameAgeAddress;
-                btnVoterName.IsVisible = true;
-                cboVoterName.IsVisible = false;
-                cboVoterName.ItemsSource = voters;
-                cboVoterName.SelectedItem = voters[0];
-            }
-            else if (voters.Count <= 20)
-            {
-                cboVoterName.ItemsSource = voters;
-                cboVoterName.SelectedItem = null;
-                cboVoterName.Text = $"Select one of {voters.Count} matches.";
-                cboVoterName.IsEnabled = true;
-            }
-            else
-            {
-                cboVoterName.Text = $"{voters.Count} matches; please add more filters.";
-            }
-        }
-    }
-
-    private async void cboVoterName_SelectionChanged(object sender, EventArgs e)
-    {
-        var element = (VisualElement)sender;
-        if (element.IsVisible && element.IsEnabled && cboVoterName.SelectedItem != null)
-        {
-            var voter = (Voter)cboVoterName.SelectedItem;
-            txtVoterID.Text = voter.ID[2..];
-            Lookup_Clicked(sender, e);
-            acVoterName.SelectedItems?.Clear();
-            await txtVoterID.HideSoftInputAsync(new CancellationTokenSource().Token);
         }
     }
 
