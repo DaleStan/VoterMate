@@ -171,7 +171,7 @@ internal class TsvDatabase : IDatabase
             const double ZeroDistanceScore = 20;
             const double PointsLostPerMile = 40;
             const double ClassmatesScore = 5;
-            const double HousematesScore = 10;
+            double HousematesScore = 4 + 16 * Random.Shared.NextDouble();// 20*rand_between(0.2,1) == rand_between(4,20) == 4+rand_between(0,16) == 4+16*rand_between(0,1)
 
             double distanceScore = Math.Max(0, ZeroDistanceScore - PointsLostPerMile * _location.CalculateDistance(voter.Location, DistanceUnits.Miles));
             double classmatesScore = (voter.BirthDate - _mobilizer.BirthDate.GetValueOrDefault()).Days < 18 * 30 ? ClassmatesScore : 0;
