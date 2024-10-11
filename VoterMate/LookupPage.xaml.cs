@@ -40,6 +40,7 @@ public partial class LookupPage : ContentPage
             txtVoterName.Text = "";
         }
 
+        lblWarning.IsVisible = false;
         var lists = acVoterName.SelectedItems?.Cast<string>().Select(App.Database.GetVoters).ToList() ?? [];
 
         if (lists.Count == 0)
@@ -93,7 +94,6 @@ public partial class LookupPage : ContentPage
         cboVoterName.IsVisible = true;
         cboVoterName.IsEnabled = false;
         btnVoterName.IsVisible = false;
-        lblWarning.IsVisible = false;
 
         if (voters.Count == 0)
         {
@@ -120,7 +120,7 @@ public partial class LookupPage : ContentPage
         }
     }
 
-    private async void cboVoterName_SelectionChanged(object sender, EventArgs e)
+    private void cboVoterName_SelectionChanged(object sender, EventArgs e)
     {
         var element = (VisualElement)sender;
         if (element.IsVisible && element.IsEnabled && cboVoterName.SelectedItem != null)
@@ -128,8 +128,11 @@ public partial class LookupPage : ContentPage
             var voter = (Voter)cboVoterName.SelectedItem;
             txtVoterID.Text = voter.ID[2..];
             Lookup_Clicked(sender, e);
-            acVoterName.SelectedItems?.Clear();
-            await txtVoterID.HideSoftInputAsync(new CancellationTokenSource().Token);
         }
+    }
+
+    private void ContentPage_NavigatedTo(object sender, NavigatedToEventArgs e)
+    {
+        acVoterName.SelectedItems?.Clear();
     }
 }
