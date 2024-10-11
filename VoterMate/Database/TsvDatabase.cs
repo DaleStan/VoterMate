@@ -168,7 +168,6 @@ internal class TsvDatabase : IDatabase
 
         private double RelationshipScore(Voter voter)
         {
-            if (voter.ID is "OH0027123397") { }
             const double ZeroDistanceScore = 20;
             const double PointsLostPerMile = 40;
             const double ClassmatesScore = 5;
@@ -178,8 +177,6 @@ internal class TsvDatabase : IDatabase
             double classmatesScore = (voter.BirthDate - _mobilizer.BirthDate.GetValueOrDefault()).Days < 18 * 30 ? ClassmatesScore : 0;
             double housematesScore = _housemates.Contains(voter.ID!) ? HousematesScore : 0;
             double alreadyViewedPenalty = _initialViewedFriends.Contains(voter.ID) ? -100 : 0;
-
-            if (housematesScore > 0) { }
 
             return distanceScore + classmatesScore + housematesScore + alreadyViewedPenalty;
         }
