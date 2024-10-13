@@ -1,5 +1,6 @@
 ﻿using Microsoft.Maui.Devices.Sensors;
 using OfficeOpenXml;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection;
 using System.Text.RegularExpressions;
@@ -80,8 +81,7 @@ internal static partial class Program
 
         if (stream == null)
         {
-            Console.Error.WriteLine("ERROR: Please download the latest voter database (schema.xlsx) and place it in the VoterMate.BuildDatabase project folder before building.");
-            Environment.Exit(-1);
+            Error("Please download the latest voter database (schema.xlsx) and place it in the VoterMate.BuildDatabase project folder before building.");
         }
         using var _1 = stream;
         using var workbook = new ExcelPackage(stream).Workbook;
@@ -89,20 +89,40 @@ internal static partial class Program
         // Slurp the data out of the Excel file and into intermediate maps.
 
         var mobilizerDB = workbook.Worksheets["canvass"];
+        int? idColumn = null, addressColumn = null, latColumn = null, lonColumn = null, turfColumn = null;
+
+        for (int i = 1; i < 100; i++)
+            if (mobilizerDB.Cells[1, i].Value?.ToString() == "SOS_VOTERID")
+                idColumn = i;
+            else if (mobilizerDB.Cells[1, i].Value?.ToString() == "household")
+                addressColumn = i;
+            else if (mobilizerDB.Cells[1, i].Value?.ToString() == "lat")
+                latColumn = i;
+            else if (mobilizerDB.Cells[1, i].Value?.ToString() == "lon")
+                lonColumn = i;
+            else if (mobilizerDB.Cells[1, i].Value?.ToString() == "Turf ID")
+                turfColumn = i;
+
+        if (idColumn == null) Error("Could not find 'SOS_VOTERID' column on the canvass tab.");
+        if (addressColumn == null) Error("Could not find 'household' column on the canvass tab.");
+        if (latColumn == null) Error("Could not find 'lat' column on the canvass tab.");
+        if (lonColumn == null) Error("Could not find 'lon' column on the canvass tab.");
+        if (turfColumn == null) Error("Could not find 'Turf ID' column on the canvass tab.");
+
         int rowCount = mobilizerDB.Dimension.Rows;
         for (int i = 2; i <= rowCount; i++)
         {
-            string id = mobilizerDB.Cells[i, 1].Value.ToString()!;
+            string id = mobilizerDB.Cells[i, idColumn.Value].Value.ToString()!;
             mobilizers.Add(id);
 
-            string address = mobilizerDB.Cells[i, 3].Value.ToString()!;
+            string address = mobilizerDB.Cells[i, addressColumn.Value].Value.ToString()!;
 
             if (!households.TryGetValue(address, out var household))
             {
-                var latCell = mobilizerDB.Cells[i, 6];
+                var latCell = mobilizerDB.Cells[i, latColumn.Value];
                 var latString = latCell.Value?.ToString();
                 if (!double.TryParse(latString, out var lat)) { throw new Exception($"ERROR: Cell {latCell} on the canvass tab contains '{latString}', which cannot be converted to a latitude value."); }
-                var lonCell = mobilizerDB.Cells[i, 7];
+                var lonCell = mobilizerDB.Cells[i, lonColumn.Value];
                 var lonString = lonCell.Value?.ToString();
                 if (!double.TryParse(lonString, out var lon)) { throw new Exception($"ERROR: Cell {lonCell} on the canvass tab contains '{lonString}', which cannot be converted to a longitude value."); }
                 Location location = new(lat, lon);
@@ -110,27 +130,51 @@ internal static partial class Program
             }
             household.Mobilizers.Add(new(id, string.Empty, null));
 
-            string turfID = mobilizerDB.Cells[i, 8].Value?.ToString() ?? "";
+            string turfID = mobilizerDB.Cells[i, turfColumn.Value].Value?.ToString() ?? "";
             if (!turfs.TryGetValue(turfID, out var turf))
                 turf = turfs[turfID] = [];
             turf.Add(address);
         }
 
         var voterDB = workbook.Worksheets["voterDB"];
+        idColumn = null; addressColumn = null; latColumn = null; lonColumn = null;
+        int? nameAgeAddressColumn = null, birthDateColumn = null;
+
+        for (int i = 1; i < 100; i++)
+            if (voterDB.Cells[1, i].Value?.ToString() == "SOS_VOTERID")
+                idColumn = i;
+            else if (voterDB.Cells[1, i].Value?.ToString() == "nameAgeAddress")
+                nameAgeAddressColumn = i;
+            else if (voterDB.Cells[1, i].Value?.ToString() == "household")
+                addressColumn = i;
+            else if (voterDB.Cells[1, i].Value?.ToString() == "lat")
+                latColumn = i;
+            else if (voterDB.Cells[1, i].Value?.ToString() == "lon")
+                lonColumn = i;
+            else if (voterDB.Cells[1, i].Value?.ToString() == "DATE_OF_BIRTH")
+                birthDateColumn = i;
+
+        if (idColumn == null) Error("Could not find 'SOS_VOTERID' column on the voterDB tab.");
+        if (nameAgeAddressColumn == null) Error("Could not find 'nameAgeAddress' column on the voterDB tab.");
+        if (addressColumn == null) Error("Could not find 'household' column on the voterDB tab.");
+        if (latColumn == null) Error("Could not find 'lat' column on the voterDB tab.");
+        if (lonColumn == null) Error("Could not find 'lon' column on the voterDB tab.");
+        if (birthDateColumn == null) Error("Could not find 'DATE_OF_BIRTH' column on the voterDB tab.");
+
         rowCount = voterDB.Dimension.Rows;
         for (int i = 2; i <= rowCount; i++)
         {
-            string? id = voterDB.Cells[i, 1].Value?.ToString();
+            string? id = voterDB.Cells[i, idColumn.Value].Value?.ToString();
             if (id == null) continue;
-            _ = DateTime.TryParse(voterDB.Cells[i, 8].Value.ToString(), out var birthDate);
-            var latCell = voterDB.Cells[i, 4];
+            _ = DateTime.TryParse(voterDB.Cells[i, birthDateColumn.Value].Value.ToString(), out var birthDate);
+            var latCell = voterDB.Cells[i, latColumn.Value];
             var latString = latCell.Value?.ToString();
             if (!double.TryParse(latString, out var lat)) { throw new Exception($"ERROR: Cell {latCell} on the voterDB tab contains '{latString}', which cannot be converted to a latitude value."); }
-            var lonCell = voterDB.Cells[i, 5];
+            var lonCell = voterDB.Cells[i, lonColumn.Value];
             var lonString = lonCell.Value?.ToString();
             if (!double.TryParse(lonString, out var lon)) { throw new Exception($"ERROR: Cell {lonCell} on the voterDB tab contains '{lonString}', which cannot be converted to a longitude value."); }
             Location location = new(lat, lon);
-            voters[id] = new Voter(id, GetName(voterDB, i), voterDB.Cells[i, 2].Value.ToString()!.Trim(), location, birthDate, voterDB.Cells[i, 3].Value.ToString()!.Trim());
+            voters[id] = new Voter(id, GetName(voterDB, i), voterDB.Cells[i, nameAgeAddressColumn.Value].Value.ToString()!.Trim(), location, birthDate, voterDB.Cells[i, addressColumn.Value].Value.ToString()!.Trim());
         }
 
         var housemateDB = workbook.Worksheets["households"];
@@ -249,6 +293,13 @@ internal static partial class Program
                 Console.WriteLine($"ERROR: Could not create turf file for turf ID '{id}'.");
             }
         }
+    }
+
+    [DoesNotReturn]
+    private static void Error(string value)
+    {
+        Console.Error.WriteLine("ERROR: " + value);
+        Environment.Exit(-1);
     }
 
     [GeneratedRegex(@"^([^[]*?)\s+\[")]
