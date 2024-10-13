@@ -99,7 +99,13 @@ internal static partial class Program
 
             if (!households.TryGetValue(address, out var household))
             {
-                Location location = new(Convert.ToDouble(mobilizerDB.Cells[i, 6].Value), Convert.ToDouble(mobilizerDB.Cells[i, 7].Value));
+                var latCell = mobilizerDB.Cells[i, 6];
+                var latString = latCell.Value?.ToString();
+                if (!double.TryParse(latString, out var lat)) { throw new Exception($"ERROR: Cell {latCell} on the canvass tab contains '{latString}', which cannot be converted to a latitude value."); }
+                var lonCell = mobilizerDB.Cells[i, 7];
+                var lonString = lonCell.Value?.ToString();
+                if (!double.TryParse(lonString, out var lon)) { throw new Exception($"ERROR: Cell {lonCell} on the canvass tab contains '{lonString}', which cannot be converted to a longitude value."); }
+                Location location = new(lat, lon);
                 household = households[address] = new(address, location, []);
             }
             household.Mobilizers.Add(new(id, string.Empty, null));
@@ -117,7 +123,13 @@ internal static partial class Program
             string? id = voterDB.Cells[i, 1].Value?.ToString();
             if (id == null) continue;
             _ = DateTime.TryParse(voterDB.Cells[i, 8].Value.ToString(), out var birthDate);
-            Location location = new(Convert.ToDouble(voterDB.Cells[i, 4].Value), Convert.ToDouble(voterDB.Cells[i, 5].Value));
+            var latCell = voterDB.Cells[i, 4];
+            var latString = latCell.Value?.ToString();
+            if (!double.TryParse(latString, out var lat)) { throw new Exception($"ERROR: Cell {latCell} on the voterDB tab contains '{latString}', which cannot be converted to a latitude value."); }
+            var lonCell = voterDB.Cells[i, 5];
+            var lonString = lonCell.Value?.ToString();
+            if (!double.TryParse(lonString, out var lon)) { throw new Exception($"ERROR: Cell {lonCell} on the voterDB tab contains '{lonString}', which cannot be converted to a longitude value."); }
+            Location location = new(lat, lon);
             voters[id] = new Voter(id, GetName(voterDB, i), voterDB.Cells[i, 2].Value.ToString()!.Trim(), location, birthDate, voterDB.Cells[i, 3].Value.ToString()!.Trim());
         }
 
