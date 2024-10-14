@@ -72,7 +72,6 @@ public partial class MainPage : ContentPage, INotifyPropertyChanged
         InitializeComponent();
         using StreamReader sr = new(typeof(TsvDatabase).Assembly.GetManifestResourceStream("VoterMate.Database.voterDataDate.tsv")!);
         lblBuildInfo.Text = GetBuildInfo() + "\n" + sr.ReadToEnd();
-        SetDisplayDescription();
         DoorsKnocked = App.DoorsKnocked.Keys.Count;
 
         try
@@ -360,20 +359,25 @@ public partial class MainPage : ContentPage, INotifyPropertyChanged
 
     private async void MainPage_Loaded(object sender, EventArgs e)
     {
+        if (Canvasser == null)
+            await Navigation.PushAsync(new SettingsPage(this));
+
         Geolocation.LocationChanged += Geolocation_LocationChanged;
         Geolocation.ListeningFailed += Geolocation_ListeningFailed;
-        if (!await Geolocation.StartListeningForegroundAsync(new GeolocationListeningRequest(GeolocationAccuracy.Best)))
+
+        await Permissions.RequestAsync<Permissions.LocationWhenInUse>();
+        try
         {
-            Application.Current!.Quit();
+            await Geolocation.StartListeningForegroundAsync(new GeolocationListeningRequest(GeolocationAccuracy.Best));
         }
+        catch (InvalidOperationException) { /* probably already listening */ }
 
         Window.Resumed += Window_Resumed;
         Window.Deactivated += Window_Deactivated;
 
-        LogEvent("Started", null, _location ?? await Geolocation.GetLastKnownLocationAsync());
+        SetDisplayDescription();
 
-        if (Canvasser == null)
-            await Navigation.PushAsync(new SettingsPage(this));
+        LogEvent("Started", null, _location ?? await Geolocation.GetLocationAsync());
     }
 
     private async void Window_Deactivated(object? sender, EventArgs e) => LogEvent("Deactivated", null, _location ?? await Geolocation.GetLastKnownLocationAsync());
