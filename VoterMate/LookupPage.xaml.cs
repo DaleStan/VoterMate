@@ -1,3 +1,4 @@
+using Syncfusion.Maui.Inputs;
 using VoterMate.Database;
 
 namespace VoterMate;
@@ -8,7 +9,12 @@ public partial class LookupPage : ContentPage
 
     static LookupPage()
     {
-        _nameParts = Task.Run(static async () => (await App.Database.GetNamePartsAsync()).ToList());
+        _nameParts = Task.Run(async () =>
+        {
+            var nameParts = (await App.Database.GetNamePartsAsync()).ToList();
+            nameParts.Sort(StringComparer.InvariantCultureIgnoreCase);
+            return nameParts;
+        });
     }
 
     private readonly MainPage _mainPage;
@@ -17,6 +23,7 @@ public partial class LookupPage : ContentPage
     {
         InitializeComponent();
         _mainPage = mainPage;
+        acVoterName.FilterBehavior = new FilterBehavior(_nameParts);
     }
 
     private async void ContentPage_Loaded(object sender, EventArgs e)
@@ -148,5 +155,19 @@ public partial class LookupPage : ContentPage
     private void ContentPage_NavigatedTo(object sender, NavigatedToEventArgs e)
     {
         acVoterName.SelectedItems?.Clear();
+    }
+}
+
+internal class FilterBehavior(Task<List<string>> nameParts) : IAutocompleteFilterBehavior
+{
+    public async Task<object?> GetMatchingItemsAsync(SfAutocomplete source, AutocompleteFilterInfo filterInfo)
+    {
+        if (filterInfo.Text?.Length > 1)
+        {
+            var startIdx = (await nameParts).BinarySearch(filterInfo.Text, StringComparer.InvariantCultureIgnoreCase);
+            if (startIdx < 0) startIdx = ~startIdx;
+            return nameParts.Result.Skip(startIdx).TakeWhile(v => v.StartsWith(filterInfo.Text, StringComparison.InvariantCultureIgnoreCase)).ToList();
+        }
+        return new string[] { "Enter at least 2 characters" };
     }
 }
