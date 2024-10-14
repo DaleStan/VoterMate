@@ -37,6 +37,8 @@
 		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'tizen'">6.5</SupportedOSPlatformVersion>
 		<EmbedAssembliesIntoApk>True</EmbedAssembliesIntoApk>
+		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+		<NoWarn>$(NoWarn);CsWinRT1028;CsWinRT1029</NoWarn>
 	</PropertyGroup>
 
 	<ItemGroup>
