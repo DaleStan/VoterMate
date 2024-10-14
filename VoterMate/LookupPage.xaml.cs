@@ -4,6 +4,13 @@ namespace VoterMate;
 
 public partial class LookupPage : ContentPage
 {
+    private static readonly Task<List<string>> _nameParts;
+
+    static LookupPage()
+    {
+        _nameParts = Task.Run(static async () => (await App.Database.GetNamePartsAsync()).ToList());
+    }
+
     private readonly MainPage _mainPage;
 
     public LookupPage(MainPage mainPage)
@@ -12,28 +19,32 @@ public partial class LookupPage : ContentPage
         _mainPage = mainPage;
     }
 
-    private void ContentPage_Loaded(object sender, EventArgs e)
+    private async void ContentPage_Loaded(object sender, EventArgs e)
     {
-        acVoterName.ItemsSource = App.Database.GetNameParts();
-        acVoterName.Focus();
+        if (!_nameParts.Wait(100))
+            await _nameParts;
+
+        acVoterName.ItemsSource = _nameParts.Result;
+        acVoterName.IsEnabled = true;
+        acVoterName.Placeholder = "Enter name, age, and/or address";
     }
 
     private async void Lookup_Clicked(object sender, EventArgs e)
     {
-        var info = App.Database.GetMobilizer("OH" + txtVoterID.Text);
+        var info = App.Database.GetMobilizerAsync("OH" + txtVoterID.Text);
         if (info == null)
         {
             await DisplayAlert("Not Found", $"The voter with ID OH{txtVoterID.Text} could not be found.", "OK");
             return;
         }
 
-        var (mobilizer, location) = info.Value;
+        var (mobilizer, location) = (await info).Value;
         _mainPage.LogEvent("Opening mobilizer page (ID lookup)", mobilizer.ID, _mainPage.Location);
         await txtVoterID.HideSoftInputAsync(new CancellationTokenSource().Token);
-        await Navigation.PushAsync(new MobilizerPage(location, mobilizer, _mainPage));
+        await Navigation.PushAsync(new MobilizerPage(location, mobilizer, await App.Database.GetPriorityVotersAsync(location, mobilizer), _mainPage));
     }
 
-    private void acVoterName_SelectionChanged(object sender, Syncfusion.Maui.Inputs.SelectionChangedEventArgs e)
+    private async void acVoterName_SelectionChanged(object sender, Syncfusion.Maui.Inputs.SelectionChangedEventArgs e)
     {
         if (acVoterName.SelectedItems?.Count > 0 && txtVoterName.Text != "")
         {
@@ -41,10 +52,13 @@ public partial class LookupPage : ContentPage
         }
 
         lblWarning.IsVisible = false;
-        var lists = acVoterName.SelectedItems?.Cast<string>().Select(App.Database.GetVoters).ToList() ?? [];
+        var taskLists = acVoterName.SelectedItems?.Cast<string>().Select(App.Database.GetVotersAsync).ToList() ?? [];
+        await Task.WhenAll(taskLists);
+        var lists = taskLists.Select(t => t.Result).ToList();
 
         if (lists.Count == 0)
         {
+            ConfigureVoterSelection([]);
             cboVoterName.Text = "No search parameters";
         }
         else
@@ -73,10 +87,10 @@ public partial class LookupPage : ContentPage
             } while (!txtVoterName.IsFocused);
         }
 
-        ConfigureVoterSelection(App.Database.GetVotersByName(txtVoterName.Text));
+        ConfigureVoterSelection(await App.Database.GetVotersByNameAsync(txtVoterName.Text));
     }
 
-    private void DatePicker_DateSelected(object sender, DateChangedEventArgs e)
+    private async void DatePicker_DateSelected(object sender, DateChangedEventArgs e)
     {
         if (acVoterName.SelectedItems?.Count > 0 || txtVoterName.Text != "")
         {
@@ -84,7 +98,7 @@ public partial class LookupPage : ContentPage
             acVoterName.SelectedItems?.Clear();
         }
 
-        ConfigureVoterSelection(App.Database.GetVotersByBirthdate(e.NewDate));
+        ConfigureVoterSelection(await App.Database.GetVotersByBirthdateAsync(e.NewDate));
     }
 
 

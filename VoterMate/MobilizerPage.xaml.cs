@@ -15,13 +15,13 @@ public partial class MobilizerPage : ContentPage
 
     public Mobilizer Mobilizer => _mobilizer;
 
-    public MobilizerPage(Location location, Mobilizer? mobilizer, MainPage mainPage)
+    public MobilizerPage(Location location, Mobilizer mobilizer, IReadOnlyCollection<Voter> voters, MainPage mainPage)
     {
         InitializeComponent();
 
         _location = location;
 
-        if (mobilizer != null)
+        if (mobilizer.ID != null)
         {
             nameRow.Height = new GridLength(0);
             Title = mobilizer.Name;
@@ -29,9 +29,9 @@ public partial class MobilizerPage : ContentPage
         else
             btnEdit.IconImageSource = null;
 
-        _mobilizer = mobilizer ?? new Mobilizer(null, string.Empty, null);
+        _mobilizer = mobilizer;
         _mainPage = mainPage;
-        _voters = App.Database.GetPriorityVoters(location, _mobilizer);
+        _voters = voters;
         for (int i = 0; i < 101; i++)
             dgVoters.RowDefinitions.Add(new(GridLength.Auto));
 
@@ -125,7 +125,7 @@ public partial class MobilizerPage : ContentPage
             mobilizerContacted = true;
         }
 
-        App.Database.SaveShownFriends();
+        await App.Database.SaveShownFriendsAsync();
 
         if (mobilizerContacted)
         {
@@ -142,7 +142,7 @@ public partial class MobilizerPage : ContentPage
         }
     }
 
-    internal static Task LoadShownFriendsData(FileResult file) => App.Database.LoadShownFriends(file);
+    internal static Task LoadShownFriendsData(FileResult file) => App.Database.LoadShownFriendsAsync(file);
 
     private async void Edit_Clicked(object sender, EventArgs e)
     {

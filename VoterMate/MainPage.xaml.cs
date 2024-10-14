@@ -196,7 +196,7 @@ public partial class MainPage : ContentPage, INotifyPropertyChanged
                 {
                     LogEvent("Opening mobilizer page (selected)", mobilizer.ID, _location);
                     App.DoorsKnocked.AddValue(new(Canvasser, household.Address, mobilizer.ID!));
-                    await Navigation.PushAsync(new MobilizerPage(household.Location, mobilizer, this));
+                    await Navigation.PushAsync(new MobilizerPage(household.Location, mobilizer, await App.Database.GetPriorityVotersAsync(location, mobilizer), this));
                     DoorKnocked((Button)expander.Header);
                 }
                 async void AddNote(object? sender, EventArgs e)
@@ -257,7 +257,7 @@ public partial class MainPage : ContentPage, INotifyPropertyChanged
         double squareFilterLongitude = locationFilterRange / 1.609 / MilesPerDegree;
         double squareFilterLatitude = locationFilterRange / 1.609 / MilesPerDegree / Math.Cos(location.Longitude);
 
-        var households = App.Database.GetHouseholds();
+        var households = await App.Database.GetHouseholdsAsync();
 
         if (households.Count == 0)
         {
@@ -385,15 +385,16 @@ public partial class MainPage : ContentPage, INotifyPropertyChanged
         Geolocation.StartListeningForegroundAsync(new GeolocationListeningRequest(GeolocationAccuracy.Best));
     }
 
-    private void NotListed_Clicked(object? sender, EventArgs e)
+    private async void NotListed_Clicked(object? sender, EventArgs e)
     {
         if (_location != null)
         {
             LogEvent("Opening mobilizer page (not listed)", null, _location);
-            Navigation.PushAsync(new MobilizerPage(_location, null, this));
+            var mobilizer = new Mobilizer(null, string.Empty, null);
+            await Navigation.PushAsync(new MobilizerPage(_location, mobilizer, await App.Database.GetPriorityVotersAsync(_location, mobilizer), this));
         }
         else
-            DisplayAlert("Unknown location", $"Friend lists cannot be displayed without a voter ID or location information.", "OK");
+            await DisplayAlert("Unknown location", $"Friend lists cannot be displayed without a voter ID or location information.", "OK");
     }
 
     private async void Copy_Clicked(object? sender, EventArgs e)

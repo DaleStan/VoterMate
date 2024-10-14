@@ -8,7 +8,7 @@
              NavigatedTo="ContentPage_NavigatedTo">
     <VerticalStackLayout>
         <Label Text="Look up by partial name/address:" Margin="3"/>
-        <sf:SfAutocomplete x:Name="acVoterName" Margin="20,3,3,3" SelectionChanged="acVoterName_SelectionChanged" Completed="cboVoterName_SelectionChanged" Placeholder="Enter name, age, and/or address" SelectionMode="Multiple" MinimumPrefixCharacters="2" TextSearchMode="Contains"/>
+        <sf:SfAutocomplete x:Name="acVoterName" Margin="20,3,3,3" SelectionChanged="acVoterName_SelectionChanged" Completed="cboVoterName_SelectionChanged" Placeholder="Loading data; please wait." SelectionMode="Multiple" MinimumPrefixCharacters="2" TextSearchMode="Contains" IsEnabled="False"/>
         <Label x:Name="lblWarning" Text="No voters match all filters. Showing voters that match all but one filter." TextColor="Red" IsVisible="False" Margin="20,3,3,3"/>
         <Label Text="Look up by birthdate:" Margin="3"/>
         <DatePicker MinimumDate="1927/01/01" MaximumDate="2006/11/05" Format="MMM dd, yyyy" Margin="20,3,3,3" DateSelected="DatePicker_DateSelected" />

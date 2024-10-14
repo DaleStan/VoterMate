@@ -5,16 +5,16 @@ namespace VoterMate.Database;
 
 public interface IDatabase
 {
-    IReadOnlyList<Household> GetHouseholds();
-    (Mobilizer, Location)? GetMobilizer(string voterID);
-    IReadOnlyCollection<Voter> GetPriorityVoters(Location location, Mobilizer mobilizer);
-    Task LoadShownFriends(FileResult file);
+    Task<IReadOnlyList<Household>> GetHouseholdsAsync();
+    Task<(Mobilizer, Location)?> GetMobilizerAsync(string voterID);
+    Task<IReadOnlyCollection<Voter>> GetPriorityVotersAsync(Location location, Mobilizer mobilizer);
+    Task LoadShownFriendsAsync(FileResult file);
     void LoadTurfList(string path);
-    void SaveShownFriends();
-    IReadOnlyCollection<string> GetNameParts();
-    IReadOnlyCollection<Voter> GetVoters(string namePart);
-    IReadOnlyList<Voter> GetVotersByName(string name);
-    IReadOnlyList<Voter> GetVotersByBirthdate(DateTime date);
+    Task SaveShownFriendsAsync();
+    Task<IReadOnlyCollection<string>> GetNamePartsAsync();
+    Task<IReadOnlyCollection<Voter>> GetVotersAsync(string namePart);
+    Task<IReadOnlyList<Voter>> GetVotersByNameAsync(string name);
+    Task<IReadOnlyList<Voter>> GetVotersByBirthdateAsync(DateTime date);
 }
 
 public record Household(string Address, Location Location, List<Mobilizer> Mobilizers)

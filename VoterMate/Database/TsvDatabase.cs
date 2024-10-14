@@ -5,51 +5,98 @@ namespace VoterMate.Database;
 internal class TsvDatabase : IDatabase
 {
     // voterID -> List<voterID>
-    private readonly Dictionary<string, HashSet<string>> _housemates = [];
-    // address -> (Location, List<voterID>)
-    private readonly List<Household> _households = [];
+    private readonly Task<Dictionary<string, HashSet<string>>> _housemates;
+    private Task<List<Household>>? _households;
     // voterID -> Voter
-    private readonly Dictionary<string, Voter> _voters = [];
-    private readonly Dictionary<string, List<Voter>> _voterAddresses = [];
-    private readonly HashSet<Voter> _priorityVoters = [];
+    private readonly Task<Dictionary<string, Voter>> _voters;
+    private readonly Task<Dictionary<string, List<Voter>>> _voterAddresses;
+    private readonly Task<HashSet<Voter>> _priorityVoters;
     private readonly Dictionary<string, HashSet<string>> _friendsShown = [];
-    private readonly Dictionary<string, List<Voter>> _voterNames = new(StringComparer.InvariantCultureIgnoreCase);
-    private readonly Dictionary<string, List<Voter>> _voterNameParts = new(StringComparer.InvariantCultureIgnoreCase);
-    private readonly Dictionary<DateTime, List<Voter>> _voterBirth = new();
+    private readonly Task<Dictionary<string, List<Voter>>> _voterNames;
+    private readonly Task<Dictionary<string, List<Voter>>> _voterNameParts;
+    private readonly Task<Dictionary<DateTime, List<Voter>>> _voterBirth;
 
     public TsvDatabase()
     {
-        using (StreamReader sr = new(typeof(TsvDatabase).Assembly.GetManifestResourceStream("VoterMate.Database.housemates.tsv")!))
+        _housemates = Task.Run(() =>
+        {
+            Dictionary<string, HashSet<string>> housemates = [];
+            using StreamReader sr = new(typeof(TsvDatabase).Assembly.GetManifestResourceStream("VoterMate.Database.housemates.tsv")!);
             while (sr.ReadLine() is string line)
             {
                 var parts = line.Split('\t');
-                _housemates[parts[0]] = [.. parts[1..]];
+                housemates[parts[0]] = [.. parts[1..]];
             }
+            return housemates;
+        });
 
-        using (StreamReader sr = new(typeof(TsvDatabase).Assembly.GetManifestResourceStream("VoterMate.Database.voters.tsv")!))
+        _voters = Task.Run(() =>
+        {
+            Dictionary<string, Voter> voters = [];
+            using StreamReader sr = new(typeof(TsvDatabase).Assembly.GetManifestResourceStream("VoterMate.Database.voters.tsv")!);
             while (Voter.LoadFrom(sr) is Voter voter)
+                voters[voter.ID] = voter;
+            return voters;
+        });
+
+        _voterAddresses = Task.Run(async () =>
+        {
+            Dictionary<string, List<Voter>> voterAddresses = [];
+            foreach (var voter in (await _voters).Values)
             {
-                _voters[voter.ID] = voter;
-                if (!_voterAddresses.TryGetValue(voter.Address, out var household))
-                    _voterAddresses[voter.Address] = household = [];
+                if (!voterAddresses.TryGetValue(voter.Address, out var household))
+                    voterAddresses[voter.Address] = household = [];
                 household.Add(voter);
-                string name = voter.Name.Replace("  ", " ");
-                if (!_voterNames.TryGetValue(name, out var names)) _voterNames[name] = names = [];
-                names.Add(voter);
-                if (!_voterBirth.TryGetValue(voter.BirthDate, out names)) _voterBirth[voter.BirthDate] = names = [];
-                names.Add(voter);
             }
+            return voterAddresses;
+        });
 
-        using (StreamReader sr = new(typeof(TsvDatabase).Assembly.GetManifestResourceStream("VoterMate.Database.priorityVoters.tsv")!))
+        _voterNames = Task.Run(async () =>
+        {
+            Dictionary<string, List<Voter>> voterNames = new(StringComparer.InvariantCultureIgnoreCase);
+            foreach (var voter in (await _voters).Values)
+            {
+                string name = voter.Name.Replace("  ", " ");
+                if (!voterNames.TryGetValue(name, out var voters)) voterNames[name] = voters = [];
+                voters.Add(voter);
+            }
+            return voterNames;
+        });
+
+        _voterBirth = Task.Run(async () =>
+        {
+            Dictionary<DateTime, List<Voter>> voterBirth = [];
+            foreach (var voter in (await _voters).Values)
+            {
+                if (!voterBirth.TryGetValue(voter.BirthDate, out var voters)) voterBirth[voter.BirthDate] = voters = [];
+                voters.Add(voter);
+            }
+            return voterBirth;
+        });
+
+        _priorityVoters = Task.Run(async () =>
+        {
+            var voters = await _voters;
+            HashSet<Voter> priorityVoters = [];
+            using StreamReader sr = new(typeof(TsvDatabase).Assembly.GetManifestResourceStream("VoterMate.Database.priorityVoters.tsv")!);
             while (sr.ReadLine() is string line)
-                _priorityVoters.Add(_voters[line]);
+                priorityVoters.Add(voters[line]);
+            return priorityVoters;
+        });
 
-        using (StreamReader sr = new(typeof(TsvDatabase).Assembly.GetManifestResourceStream("VoterMate.Database.lookupDb.tsv")!))
+
+        _voterNameParts = Task.Run(async () =>
+        {
+            var voters = await _voters;
+            Dictionary<string, List<Voter>> voterNameParts = new(StringComparer.InvariantCultureIgnoreCase);
+            using StreamReader sr = new(typeof(TsvDatabase).Assembly.GetManifestResourceStream("VoterMate.Database.lookupDb.tsv")!);
             while (sr.ReadLine() is string line)
             {
                 var parts = line.Split('\t');
-                _voterNameParts[parts[0]] = [.. parts[1..].Select(v => _voters[v])];
+                voterNameParts[parts[0]] = [.. parts[1..].Select(v => voters[v])];
             }
+            return voterNameParts;
+        });
 
         File.OpenWrite(Path.Combine(FileSystem.Current.AppDataDirectory, "friendsShown.csv")).Close();
         using (StreamReader sr = new(Path.Combine(FileSystem.Current.AppDataDirectory, "friendsShown.csv")))
@@ -58,57 +105,62 @@ internal class TsvDatabase : IDatabase
 
     public void LoadTurfList(string path)
     {
-        _households.Clear();
-        HashSet<string> addresses = [];
-        using StreamReader sr = new(path);
-        while (Household.LoadFrom(sr, _voterAddresses) is Household household)
-            if (addresses.Add(household.Address))
-                _households.Add(household);
+        _households = Task.Run(async () =>
+        {
+            List<Household> households = [];
+            HashSet<string> addresses = [];
+            using StreamReader sr = new(path);
+            while (Household.LoadFrom(sr, await _voterAddresses) is Household household)
+                if (addresses.Add(household.Address))
+                    households.Add(household);
+            return households;
+        });
     }
 
-    public IReadOnlyList<Household> GetHouseholds() => _households.AsReadOnly();
+    public async Task<IReadOnlyList<Household>> GetHouseholdsAsync() => (await (_households ?? Task.FromResult(new List<Household>()))).AsReadOnly();
 
-    public IReadOnlyCollection<Voter> GetPriorityVoters(Location location, Mobilizer mobilizer) => new ReadOnlyCollection(this, location, mobilizer);
+    public async Task<IReadOnlyCollection<Voter>> GetPriorityVotersAsync(Location location, Mobilizer mobilizer)
+        => new ReadOnlyCollection(await _housemates, await _priorityVoters, _friendsShown, location, mobilizer);
 
-    public (Mobilizer, Location)? GetMobilizer(string voterID)
+    public async Task<(Mobilizer, Location)?> GetMobilizerAsync(string voterID)
     {
-        if (_voters.TryGetValue(voterID, out Voter? voter))
+        if ((await _voters).TryGetValue(voterID, out Voter? voter))
         {
             return (new Mobilizer(voterID, voter.Name, voter.BirthDate), voter.Location);
         }
         return null;
     }
 
-    public void SaveShownFriends()
+    public Task SaveShownFriendsAsync()
     {
-        File.WriteAllLines(Path.Combine(FileSystem.Current.AppDataDirectory, "friendsShown.csv"),
+        return File.WriteAllLinesAsync(Path.Combine(FileSystem.Current.AppDataDirectory, "friendsShown.csv"),
             [.. _friendsShown.SelectMany(kvp => kvp.Value.Select(val => kvp.Key + ',' + val))]);
     }
 
-    public async Task LoadShownFriends(FileResult file)
+    public async Task LoadShownFriendsAsync(FileResult file)
     {
         using Stream stream = await file.OpenReadAsync();
         using StreamReader sr = new(stream);
         LoadShownFriends(sr);
     }
 
-    public IReadOnlyList<Voter> GetVotersByName(string name)
+    public async Task<IReadOnlyList<Voter>> GetVotersByNameAsync(string name)
     {
-        _ = _voterNames.TryGetValue(name, out var voters);
+        _ = (await _voterNames).TryGetValue(name, out var voters);
         return voters ?? [];
     }
 
-    public IReadOnlyCollection<string> GetNameParts() => _voterNameParts.Keys;
+    public async Task<IReadOnlyCollection<string>> GetNamePartsAsync() => (await _voterNameParts).Keys;
 
-    public IReadOnlyCollection<Voter> GetVoters(string namePart)
+    public async Task<IReadOnlyCollection<Voter>> GetVotersAsync(string namePart)
     {
-        _ = _voterNameParts.TryGetValue(namePart, out var voters);
+        _ = (await _voterNameParts).TryGetValue(namePart, out var voters);
         return voters ?? [];
     }
 
-    public IReadOnlyList<Voter> GetVotersByBirthdate(DateTime date)
+    public async Task<IReadOnlyList<Voter>> GetVotersByBirthdateAsync(DateTime date)
     {
-        _ = _voterBirth.TryGetValue(date, out var voters);
+        _ = (await _voterBirth).TryGetValue(date, out var voters);
         return voters ?? [];
     }
 
@@ -136,25 +188,26 @@ internal class TsvDatabase : IDatabase
 
         public int Count => _voters.Count;
 
-        public ReadOnlyCollection(TsvDatabase tsvDatabase, Location location, Mobilizer mobilizer)
+        public ReadOnlyCollection(Dictionary<string, HashSet<string>> housemates, HashSet<Voter> priorityVoters, Dictionary<string, HashSet<string>> friendsShown, Location location, Mobilizer mobilizer)
         {
             _location = location;
             _mobilizer = mobilizer;
-            if (mobilizer.ID == null || !tsvDatabase._housemates.TryGetValue(mobilizer.ID, out _housemates!))
+            if (mobilizer.ID == null || !housemates.TryGetValue(mobilizer.ID, out _housemates!))
                 _housemates = [];
 
             if (mobilizer.ID != null)
             {
-                if (!tsvDatabase._friendsShown.TryGetValue(mobilizer.ID, out _viewedFriends!))
-                    _viewedFriends = tsvDatabase._friendsShown[mobilizer.ID] = [];
+                if (!friendsShown.TryGetValue(mobilizer.ID, out _viewedFriends!))
+                    _viewedFriends = friendsShown[mobilizer.ID] = [];
             }
             else
                 _viewedFriends = [];
 
             _initialViewedFriends = [.. _viewedFriends];
 
-            _voters = tsvDatabase._priorityVoters.Where(v => v.ID != mobilizer.ID).ToList();
+            _voters = priorityVoters.Where(v => v.ID != mobilizer.ID).ToList();
         }
+
 
         public IEnumerator<Voter> GetEnumerator()
         {
