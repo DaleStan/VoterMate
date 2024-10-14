@@ -109,6 +109,7 @@ internal class TsvDatabase : IDatabase
         {
             List<Household> households = [];
             HashSet<string> addresses = [];
+            File.OpenWrite(path).Close();
             using StreamReader sr = new(path);
             while (Household.LoadFrom(sr, await _voterAddresses) is Household household)
                 if (addresses.Add(household.Address))
