@@ -245,7 +245,19 @@ internal static partial class Program
             var match = NameAgeAddressSplit().Match(voter.NameAgeAddress);
             if (match.Success)
             {
-                List<string> parts = [.. match.Groups[1].Value.Split(' ', StringSplitOptions.RemoveEmptyEntries), .. match.Groups[3].Value.Split(' ', StringSplitOptions.RemoveEmptyEntries)];
+                List<string> parts = [.. match.Groups[1].Value.Split(' ', StringSplitOptions.RemoveEmptyEntries)];
+                for (int i = 1; i < parts.Count; i++)
+                {
+                    if (char.IsLower(parts[i][0]))
+                    {
+                        int j = i;
+                        while (char.IsLower(parts[--j][0])) { };
+                        string newPart = string.Join(" ", parts[j..(i + 1)]);
+                        parts.Add(newPart);
+                    }
+                }
+
+                parts.AddRange( match.Groups[3].Value.Split(' ', StringSplitOptions.RemoveEmptyEntries));
 
                 if (parts[0].Length < 3)
                     parts[0] = parts[0] + ' ' + parts[1];
