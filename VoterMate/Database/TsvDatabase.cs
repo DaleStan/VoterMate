@@ -2,7 +2,7 @@
 
 namespace VoterMate.Database;
 
-internal class TsvDatabase : IDatabase
+internal class TsvDatabase
 {
     // voterID -> List<voterID>
     private readonly Task<Dictionary<string, HashSet<string>>> _housemates;

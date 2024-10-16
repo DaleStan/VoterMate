@@ -1,21 +1,6 @@
 ﻿using Microsoft.Maui.Devices.Sensors;
-using Microsoft.Maui.Storage;
 
 namespace VoterMate.Database;
-
-public interface IDatabase
-{
-    Task<IReadOnlyList<Household>> GetHouseholdsAsync();
-    Task<(Mobilizer, Location)?> GetMobilizerAsync(string voterID);
-    Task<IReadOnlyCollection<Voter>> GetPriorityVotersAsync(Location location, Mobilizer mobilizer);
-    Task LoadShownFriendsAsync(FileResult file);
-    void LoadTurfList(string path);
-    Task SaveShownFriendsAsync();
-    Task<IReadOnlyCollection<string>> GetNamePartsAsync();
-    Task<IReadOnlyCollection<Voter>> GetVotersAsync(string namePart);
-    Task<IReadOnlyList<Voter>> GetVotersByNameAsync(string name);
-    Task<IReadOnlyList<Voter>> GetVotersByBirthdateAsync(DateTime date);
-}
 
 public record Household(string Address, Location Location, List<Mobilizer> Mobilizers)
 {

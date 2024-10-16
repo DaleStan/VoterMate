@@ -4,7 +4,7 @@ namespace VoterMate;
 
 public partial class App : Application
 {
-    public static IDatabase Database { get; } = new TsvDatabase();
+    internal static TsvDatabase Database { get; } = new();
 
     internal static OutputFile<ContactCommitment> ContactCommitments { get; } = new(Path.Combine(FileSystem.Current.AppDataDirectory, "contactCommitments_v2.csv"));
     internal static MultiMapDataFile<DoorKnock> DoorsKnocked { get; } = new(Path.Combine(FileSystem.Current.AppDataDirectory, "doorsKnocked.csv"), nameof(DoorKnock.Address));
