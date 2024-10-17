@@ -97,6 +97,7 @@ public partial class LookupPage : ContentPage
 
         if (voters.Count == 0)
         {
+            cboVoterName.SelectedItem = null;
             cboVoterName.Text = "No voters match supplied filters";
         }
         else if (voters.Count == 1)
