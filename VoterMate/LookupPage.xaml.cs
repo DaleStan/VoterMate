@@ -38,14 +38,14 @@ public partial class LookupPage : ContentPage
 
     private async void Lookup_Clicked(object sender, EventArgs e)
     {
-        var info = App.Database.GetMobilizerAsync("OH" + txtVoterID.Text);
+        var info = await App.Database.GetMobilizerAsync("OH" + txtVoterID.Text);
         if (info == null)
         {
             await DisplayAlert("Not Found", $"The voter with ID OH{txtVoterID.Text} could not be found.", "OK");
             return;
         }
 
-        var (mobilizer, location) = (await info).Value;
+        var (mobilizer, location) = info.Value;
         _mainPage.LogEvent("Opening mobilizer page (ID lookup)", mobilizer.ID, _mainPage.Location);
         await txtVoterID.HideSoftInputAsync(new CancellationTokenSource().Token);
         await Navigation.PushAsync(new MobilizerPage(location, mobilizer, await App.Database.GetPriorityVotersAsync(location, mobilizer), _mainPage));
