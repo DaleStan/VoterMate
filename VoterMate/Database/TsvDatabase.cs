@@ -123,13 +123,10 @@ internal class TsvDatabase
     public async Task<IReadOnlyCollection<Voter>> GetPriorityVotersAsync(Location location, Mobilizer mobilizer)
         => new ReadOnlyCollection(await _housemates, await _priorityVoters, _friendsShown, location, mobilizer);
 
-    public async Task<(Mobilizer, Location)?> GetMobilizerAsync(string voterID)
+    public async Task<Voter?> GetVoterAsync(string voterID)
     {
-        if ((await _voters).TryGetValue(voterID, out Voter? voter))
-        {
-            return (new Mobilizer(voterID, voter.Name, voter.BirthDate), voter.Location);
-        }
-        return null;
+        _ = (await _voters).TryGetValue(voterID, out Voter? voter);
+        return voter;
     }
 
     public Task SaveShownFriendsAsync()

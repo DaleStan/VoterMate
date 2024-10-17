@@ -36,21 +36,6 @@ public partial class LookupPage : ContentPage
         acVoterName.Placeholder = "Enter name, age, and/or address";
     }
 
-    private async void Lookup_Clicked(object sender, EventArgs e)
-    {
-        var info = await App.Database.GetMobilizerAsync("OH" + txtVoterID.Text);
-        if (info == null)
-        {
-            await DisplayAlert("Not Found", $"The voter with ID OH{txtVoterID.Text} could not be found.", "OK");
-            return;
-        }
-
-        var (mobilizer, location) = info.Value;
-        _mainPage.LogEvent("Opening mobilizer page (ID lookup)", mobilizer.ID, _mainPage.Location);
-        await txtVoterID.HideSoftInputAsync(new CancellationTokenSource().Token);
-        await Navigation.PushAsync(new MobilizerPage(location, mobilizer, await App.Database.GetPriorityVotersAsync(location, mobilizer), _mainPage));
-    }
-
     private async void acVoterName_SelectionChanged(object sender, Syncfusion.Maui.Inputs.SelectionChangedEventArgs e)
     {
         lblWarning.IsVisible = false;
@@ -60,7 +45,7 @@ public partial class LookupPage : ContentPage
 
         if (lists.Count == 0)
         {
-            ConfigureVoterSelection([]);
+            ConfigureVoterSelection([], lblPartialName);
             cboVoterName.Text = "No search parameters";
         }
         else
@@ -73,7 +58,7 @@ public partial class LookupPage : ContentPage
                 voters = voters.Distinct().ToList();
                 lblWarning.IsVisible = true;
             }
-            ConfigureVoterSelection(voters);
+            ConfigureVoterSelection(voters, lblPartialName);
         }
     }
 
@@ -83,13 +68,18 @@ public partial class LookupPage : ContentPage
         {
             acVoterName.SelectedItems?.Clear();
         }
+        txtVoterID.Text = "";
 
-        ConfigureVoterSelection(await App.Database.GetVotersByBirthdateAsync(e.NewDate));
+        ConfigureVoterSelection(await App.Database.GetVotersByBirthdateAsync(e.NewDate), lblBirthDate);
     }
 
 
-    private void ConfigureVoterSelection(IReadOnlyList<Voter> voters)
+    private void ConfigureVoterSelection(IReadOnlyList<Voter> voters, Label active)
     {
+        foreach (var label in this.GetVisualTreeDescendants().OfType<Label>())
+            label.FontAttributes = FontAttributes.None;
+        active.FontAttributes = FontAttributes.Bold;
+
         cboVoterName.IsDropDownOpen = false;
         cboVoterName.IsVisible = true;
         cboVoterName.IsEnabled = false;
@@ -98,7 +88,7 @@ public partial class LookupPage : ContentPage
         if (voters.Count == 0)
         {
             cboVoterName.SelectedItem = null;
-            cboVoterName.Text = "No voters match supplied filters";
+            cboVoterName.Text = "No voters match active filter(s)";
         }
         else if (voters.Count == 1)
         {
@@ -121,20 +111,32 @@ public partial class LookupPage : ContentPage
         }
     }
 
-    private void cboVoterName_SelectionChanged(object sender, EventArgs e)
+    private async void cboVoterName_SelectionChanged(object sender, EventArgs e)
     {
         var element = (VisualElement)sender;
         if (element.IsVisible && element.IsEnabled && cboVoterName.SelectedItem != null)
         {
             var voter = (Voter)cboVoterName.SelectedItem;
             txtVoterID.Text = voter.ID[2..];
-            Lookup_Clicked(sender, e);
+            _mainPage.LogEvent("Opening mobilizer page (lookup)", voter.ID, _mainPage.Location);
+            await txtVoterID.HideSoftInputAsync(new CancellationTokenSource().Token);
+            var mobilizer = new Mobilizer(voter.ID, voter.Name, voter.BirthDate);
+            await Navigation.PushAsync(new MobilizerPage(voter.Location, mobilizer, await App.Database.GetPriorityVotersAsync(voter.Location, mobilizer), _mainPage));
         }
     }
 
     private void ContentPage_NavigatedTo(object sender, NavigatedToEventArgs e)
     {
         acVoterName.SelectedItems?.Clear();
+    }
+
+    private async void txtVoterID_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        var voter = await App.Database.GetVoterAsync("OH" + txtVoterID.Text);
+        if (voter == null)
+            ConfigureVoterSelection([], lblVoterID);
+        else
+            ConfigureVoterSelection([voter], lblVoterID);
     }
 }
 
