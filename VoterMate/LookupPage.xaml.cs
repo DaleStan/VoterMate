@@ -53,11 +53,6 @@ public partial class LookupPage : ContentPage
 
     private async void acVoterName_SelectionChanged(object sender, Syncfusion.Maui.Inputs.SelectionChangedEventArgs e)
     {
-        if (acVoterName.SelectedItems?.Count > 0 && txtVoterName.Text != "")
-        {
-            txtVoterName.Text = "";
-        }
-
         lblWarning.IsVisible = false;
         var taskLists = acVoterName.SelectedItems?.Cast<string>().Select(App.Database.GetVotersAsync).ToList() ?? [];
         await Task.WhenAll(taskLists);
@@ -82,26 +77,10 @@ public partial class LookupPage : ContentPage
         }
     }
 
-    private async void txtVoterName_TextChanged(object sender, TextChangedEventArgs e)
-    {
-        if (txtVoterName.Text != "" && acVoterName.SelectedItems?.Count > 0)
-        {
-            acVoterName.SelectedItems?.Clear();
-            do
-            {
-                await Task.Delay(20);
-                txtVoterName.Focus();
-            } while (!txtVoterName.IsFocused);
-        }
-
-        ConfigureVoterSelection(await App.Database.GetVotersByNameAsync(txtVoterName.Text));
-    }
-
     private async void DatePicker_DateSelected(object sender, DateChangedEventArgs e)
     {
-        if (acVoterName.SelectedItems?.Count > 0 || txtVoterName.Text != "")
+        if (acVoterName.SelectedItems?.Count > 0)
         {
-            txtVoterName.Text = "";
             acVoterName.SelectedItems?.Clear();
         }
 
