@@ -40,6 +40,8 @@ public partial class MobilizerPage : ContentPage
 
     private async void LoadVoterPage()
     {
+        var savePreviousPage = SavePage();
+
         while (dgVoters.Children.Count > 2)
             dgVoters.Children.RemoveAt(2);
 
@@ -70,6 +72,8 @@ public partial class MobilizerPage : ContentPage
             i++;
         }
 
+        await savePreviousPage;
+
         int maxPage = (_voters.Count + 99) / 100;
         Button back = new() { IsEnabled = _page != 0, Text = "← Previous", HorizontalOptions = LayoutOptions.Start, Margin = new(5) };
         back.Clicked += (_, _) => { _page--; LoadVoterPage(); };
@@ -96,9 +100,30 @@ public partial class MobilizerPage : ContentPage
         _mobilizer.Phone = ((Entry)sender).Text;
     }
 
-    private void ContentPage_NavigatingFrom(object sender, NavigatingFromEventArgs e) => Save();
+    private void ContentPage_NavigatingFrom(object sender, NavigatingFromEventArgs e) => SaveMobilizer();
 
-    private async void Save()
+    bool mobilizerContacted = false;
+    int friends = 0;
+
+    private Task SavePage()
+    {
+        string name = Mobilizer.Name;
+        if (string.IsNullOrEmpty(name))
+            name = "<No name entered>";
+
+        foreach (var voter in _fetchedVoters.TakeLast(100))
+        {
+            if (voter.WillContact)
+            {
+                App.ContactCommitments.Append(new ContactCommitment(_mainPage.Canvasser, _mobilizer.ID ?? name, voter.ID, _location.Latitude, _location.Longitude));
+                friends++;
+                mobilizerContacted = true;
+            }
+        }
+        return App.Database.SaveShownFriendsAsync();
+    }
+
+    private async void SaveMobilizer()
     {
         _mainPage.LogEvent("Closing mobilizer page (Note: Reports household location)", Mobilizer.ID, _location);
 
@@ -106,18 +131,10 @@ public partial class MobilizerPage : ContentPage
         if (string.IsNullOrEmpty(name))
             name = "<No name entered>";
 
-        bool mobilizerContacted = false;
-        int friends = 0;
-
-        using (CsvWriter csv = new(new StreamWriter(Path.Combine(FileSystem.Current.AppDataDirectory, "contactCommitments_v2.csv"), true), CultureInfo.InvariantCulture))
-            foreach (var voter in _fetchedVoters.Where(v => v.WillContact))
-            {
-                voter.WillContact = false;
-                csv.WriteRecord(new ContactCommitment(_mainPage.Canvasser, _mobilizer.ID ?? name, voter.ID, _location.Latitude, _location.Longitude));
-                csv.NextRecord();
-                friends++;
-                mobilizerContacted = true;
-            }
+        foreach (var voter in _fetchedVoters)
+        {
+            voter.WillContact = false;
+        }
 
         if (!string.IsNullOrEmpty(_mobilizer.Phone) || Mobilizer.NameChanged)
         {
