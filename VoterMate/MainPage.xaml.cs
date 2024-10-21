@@ -18,6 +18,8 @@ public partial class MainPage : ContentPage, INotifyPropertyChanged
     private bool hideDistantHouses = true;
     private int selectedSort;
     private int selectedFilter = 3;
+    private readonly Dictionary<Household, Expander> _expanders = [];
+    private readonly Dictionary<Expander, Location> _expandLocation = [];
 
     internal string Canvasser { get; private set; }
 
@@ -139,80 +141,101 @@ public partial class MainPage : ContentPage, INotifyPropertyChanged
 
         foreach (var household in households.Take(15))
         {
-            Expander expander = new()
+            if (!_expanders.TryGetValue(household, out var expander))
             {
-                Header = new Button { Text = household.Address, FontAttributes = FontAttributes.Bold },
-                Margin = 3
-            };
+                Button header = new() { Text = household.Address, FontAttributes = FontAttributes.Bold };
+                expander = new() { Header = header, Margin = 3 };
 
-            expander.ExpandedChanged += Expander_ExpandedChanged;
+                expander.ExpandedChanged += Expander_ExpandedChanged;
 
-            if (App.DoorsKnocked.ContainsKey(household.Address))
-                ((Button)expander.Header).BackgroundColor = Colors.ForestGreen;
+                if (App.DoorsKnocked.ContainsKey(household.Address))
+                    header.BackgroundColor = Colors.ForestGreen;
 
-            Grid grid = [.. household.Mobilizers.SelectMany(MakeButtons)];
-            grid.RowDefinitions = [.. household.Mobilizers.Select(_ => new RowDefinition())];
-            grid.ColumnDefinitions = [new(), new(GridLength.Auto)];
-            grid.Margin = new(20, 0);
+                Grid grid = [.. household.Mobilizers.SelectMany(MakeButtons)];
+                grid.RowDefinitions = [.. household.Mobilizers.Select(_ => new RowDefinition())];
+                grid.ColumnDefinitions = [new(), new(GridLength.Auto)];
+                grid.Margin = new(20, 0);
 
-            grid.RowDefinitions.Add(new());
-            Button noResponse = new() { Text = "Other mobilizer", Margin = 3, BackgroundColor = Colors.BlueViolet };
-            noResponse.Clicked += (s, e) =>
-            {
-                App.DoorsKnocked.AddValue(new(Canvasser, household.Address, "Other mobilizer"));
-                NotListed_Clicked(s, e);
-                DoorKnocked((Button)expander.Header);
-            };
-            grid.AddWithSpan(noResponse, grid.RowDefinitions.Count - 1, columnSpan: 2);
-
-            grid.RowDefinitions.Add(new());
-            noResponse = new() { Text = "No response", Margin = 3, BackgroundColor = Colors.PaleVioletRed };
-            noResponse.Clicked += (_, _) =>
-            {
-                expander.IsExpanded = false;
-                App.DoorsKnocked.AddValue(new(Canvasser, household.Address, "No response"));
-                DoorKnocked((Button)expander.Header);
-            };
-            grid.AddWithSpan(noResponse, grid.RowDefinitions.Count - 1, columnSpan: 2);
-
-            expander.Content = grid;
-
-            Button[] MakeButtons(Mobilizer mobilizer, int i)
-            {
-                string age = mobilizer.BirthDate.HasValue ? $"({(int)((DateTime.Now - mobilizer.BirthDate.Value).TotalDays / 365.24)})" : "(unknown age)";
-                Button button = new() { Text = $"{mobilizer.Name} {age}", Margin = 3, BackgroundColor = Colors.BlueViolet };
-                button.Clicked += Clicked;
-                Grid.SetRow(button, i);
-
-                Button note = new() { Text = App.MobilizerNotes.ContainsKey(mobilizer.ID!) ? "View/edit notes" : "Add note", Margin = 3, Background = Colors.BlueViolet };
-                Grid.SetRow(note, i);
-                Grid.SetColumn(note, 1);
-                note.Clicked += AddNote;
-
-                return [button, note];
-
-                async void Clicked(object? sender, EventArgs e)
+                grid.RowDefinitions.Add(new());
+                Button noResponse = new() { Text = "Other mobilizer", Margin = 3, BackgroundColor = Colors.BlueViolet };
+                noResponse.Clicked += (s, e) =>
                 {
-                    LogEvent("Opening mobilizer page (selected)", mobilizer.ID, _location);
-                    App.DoorsKnocked.AddValue(new(Canvasser, household.Address, mobilizer.ID!));
-                    await Navigation.PushAsync(new MobilizerPage(household.Location, mobilizer, await App.Database.GetPriorityVotersAsync(location, mobilizer), this));
-                    DoorKnocked((Button)expander.Header);
-                }
-                async void AddNote(object? sender, EventArgs e)
+                    App.DoorsKnocked.AddValue(new(Canvasser, household.Address, "Other mobilizer"));
+                    NotListed_Clicked(s, e);
+                    DoorKnocked(header);
+                };
+                grid.AddWithSpan(noResponse, grid.RowDefinitions.Count - 1, columnSpan: 2);
+
+                grid.RowDefinitions.Add(new());
+                noResponse = new() { Text = "No response", Margin = 3, BackgroundColor = Colors.PaleVioletRed };
+                noResponse.Clicked += (_, _) =>
                 {
-                    _ = App.MobilizerNotes.TryGetValue(mobilizer.ID!, out var notes);
-                    notes = await DisplayPromptAsync("Notes", null, placeholder: "Add notes about " + mobilizer.Name, initialValue: notes);
-                    if (notes != null)
+                    expander.IsExpanded = false;
+                    App.DoorsKnocked.AddValue(new(Canvasser, household.Address, "No response"));
+                    DoorKnocked(header);
+                };
+                grid.AddWithSpan(noResponse, grid.RowDefinitions.Count - 1, columnSpan: 2);
+
+                expander.Content = grid;
+
+                _expanders[household] = expander;
+
+
+                Button[] MakeButtons(Mobilizer mobilizer, int i)
+                {
+                    string age = mobilizer.BirthDate.HasValue ? $"({(int)((DateTime.Now - mobilizer.BirthDate.Value).TotalDays / 365.24)})" : "(unknown age)";
+                    Button button = new() { Text = $"{mobilizer.Name} {age}", Margin = 3, BackgroundColor = Colors.BlueViolet };
+                    button.Clicked += Clicked;
+                    Grid.SetRow(button, i);
+
+                    Button note = new() { Text = App.MobilizerNotes.ContainsKey(mobilizer.ID!) ? "View/edit notes" : "Add note", Margin = 3, Background = Colors.BlueViolet };
+                    Grid.SetRow(note, i);
+                    Grid.SetColumn(note, 1);
+                    note.Clicked += AddNote;
+
+                    return [button, note];
+
+                    async void Clicked(object? sender, EventArgs e)
                     {
-                        App.MobilizerNotes[mobilizer.ID!] = notes;
-                        ((Button)sender!).Text = "View/edit notes";
+                        LogEvent("Opening mobilizer page (selected)", mobilizer.ID, _location);
+                        App.DoorsKnocked.AddValue(new(Canvasser, household.Address, mobilizer.ID!));
+                        await Navigation.PushAsync(new MobilizerPage(household.Location, mobilizer, await App.Database.GetPriorityVotersAsync(location, mobilizer), this));
+                        DoorKnocked(button);
+                    }
+                    async void AddNote(object? sender, EventArgs e)
+                    {
+                        _ = App.MobilizerNotes.TryGetValue(mobilizer.ID!, out var notes);
+                        notes = await DisplayPromptAsync("Notes", null, placeholder: "Add notes about " + mobilizer.Name, initialValue: notes);
+                        if (notes != null)
+                        {
+                            App.MobilizerNotes[mobilizer.ID!] = notes;
+                            ((Button)sender!).Text = "View/edit notes";
+                        }
                     }
                 }
             }
 
-            expander.IsExpanded = households.Count == 1;
+            expander.IsExpanded |= households.Count == 1;
             namesPanel.Add(expander);
         }
+
+        double initialScroll = sv.ScrollY;
+        double scrollY = sv.ScrollY;
+        foreach (var expander in _expanders.Values)
+        {
+            if (expander.IsExpanded)
+                if (namesPanel.Remove(expander) || (_expandLocation.TryGetValue(expander, out location!) && location.CalculateDistance(_location, DistanceUnits.Kilometers) < locationFilterRange))
+                {
+                    namesPanel.Insert(1, expander);
+                    await Task.Delay(10);
+                    await sv.ScrollToAsync(expander, ScrollToPosition.Start, false);
+                    scrollY = Math.Min(scrollY, sv.ScrollY);
+                }
+                else
+                    expander.IsExpanded = false;
+        }
+        await sv.ScrollToAsync(0, initialScroll, false);
+        await sv.ScrollToAsync(0, scrollY, true);
     }
 
     private async void Expander_ExpandedChanged(object? sender, CommunityToolkit.Maui.Core.ExpandedChangedEventArgs e)
@@ -220,6 +243,8 @@ public partial class MainPage : ContentPage, INotifyPropertyChanged
         var expander = (Expander)sender!;
         if (expander.IsExpanded)
         {
+            if (_location != null)
+                _expandLocation[expander] = _location;
             await Task.Delay(10);
             double initialScroll = sv.ScrollY;
             await sv.ScrollToAsync(expander, ScrollToPosition.End, false);
@@ -228,6 +253,8 @@ public partial class MainPage : ContentPage, INotifyPropertyChanged
             if (endScroll > initialScroll)
                 await sv.ScrollToAsync(0, endScroll, true);
         }
+        else
+            _expandLocation.Remove(expander);
     }
 
     private async void DoorKnocked(Button button)
