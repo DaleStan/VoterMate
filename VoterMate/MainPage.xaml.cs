@@ -200,7 +200,7 @@ public partial class MainPage : ContentPage, INotifyPropertyChanged
                         LogEvent("Opening mobilizer page (selected)", mobilizer.ID, _location);
                         App.DoorsKnocked.AddValue(new(Canvasser, household.Address, mobilizer.ID!));
                         await Navigation.PushAsync(new MobilizerPage(household.Location, mobilizer, await App.Database.GetPriorityVotersAsync(location, mobilizer), this));
-                        DoorKnocked(button);
+                        DoorKnocked(header);
                     }
                     async void AddNote(object? sender, EventArgs e)
                     {
